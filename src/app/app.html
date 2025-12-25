@@ -1,1 +1,8 @@
-<h1 class="text-3xl font-bold underline">Hello world!</h1>
+<div class="min-h-dvh bg-white text-zinc-900 md:flex">
+  <app-sidebar-component></app-sidebar-component>
+
+  <main class="flex-1 pb-14 md:pb-0 md:p-6 p-4">
+    <!-- pb-14 gives space above the mobile bottom nav -->
+    <router-outlet></router-outlet>
+  </main>
+</div>
