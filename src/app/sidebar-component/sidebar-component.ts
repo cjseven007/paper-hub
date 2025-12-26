@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, Input } from '@angular/core';
 import { Router } from '@angular/router';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
@@ -24,19 +24,16 @@ type NavItem = {
 export class SidebarComponent {
   private router = inject(Router);
   auth = inject(AuthService);
+
   appName = 'PaperHub';
+  
+  @Input() isAdmin = false;   // <-- comes from AppComponent now
+
   nav: NavItem[] = [
     { label: 'Home',         path: '/home',      icon: 'house' },
     { label: 'My Workspace', path: '/workspace', icon: 'app-window' },
     { label: 'Settings',     path: '/settings',  icon: 'settings' },
   ];
-
-  // zoneless-safe admin signal
-  private isAdminSig = toSignal(this.auth.isAdmin$, { initialValue: false });
-
-  get isAdmin(): boolean {
-    return this.isAdminSig();
-  }
 
   showProfileMenu = false;
 
