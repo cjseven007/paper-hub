@@ -44,6 +44,27 @@
           aria-hidden="true"
         ></span>
       </a>
+      } @if (isAdmin) {
+      <a
+        [routerLink]="'/manage-universities'"
+        routerLinkActive="bg-zinc-100 text-zinc-900"
+        class="group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 transition"
+      >
+        <!-- Icon -->
+        <span
+          class="grid h-9 w-9 place-items-center rounded-lg border border-zinc-200 bg-white group-hover:bg-zinc-50"
+        >
+          <lucide-icon name="university" class="h-5 w-5"></lucide-icon>
+        </span>
+
+        <span class="truncate">Manage universities</span>
+
+        <!-- Active indicator dot -->
+        <span
+          class="ml-auto h-2 w-2 rounded-full bg-transparent group-[.bg-zinc-100]:bg-zinc-900"
+          aria-hidden="true"
+        ></span>
+      </a>
       }
     </nav>
 

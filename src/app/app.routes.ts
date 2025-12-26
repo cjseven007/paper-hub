@@ -9,6 +9,8 @@ import { LoginComponent } from './auth/login-component/login-component';
 import { CompleteProfileComponent } from './auth/complete-profile-component/complete-profile-component';
 import { authGuard } from './auth/auth.guard';
 import { profileGuard } from './auth/profile.guard';
+import { adminGuard } from './auth/admin.guard';
+import { ManageUniversitiesComponent } from '../app/admin/manage-universities-component/manage-universities-component';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -38,6 +40,11 @@ export const routes: Routes = [
     path: 'settings',
     component: SettingsComponent,
     canActivate: [authGuard, profileGuard],
+  },
+  {
+    path: 'manage-universities',
+    component: ManageUniversitiesComponent,
+    canActivate: [authGuard, profileGuard, adminGuard],
   },
 
   { path: '', pathMatch: 'full', redirectTo: 'home' },
