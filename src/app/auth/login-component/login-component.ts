@@ -13,13 +13,17 @@ export class LoginComponent {
   private auth = inject(AuthService);
   private router = inject(Router);
 
+  loading = false;
+
   async signIn() {
+    if (this.loading) return;
+    this.loading = true;
     try {
       await this.auth.signInWithGoogle();
-      // This triggers guards on /home
       await this.router.navigateByUrl('/home');
     } catch (e) {
       console.error('Login failed', e);
+      this.loading = false;
     }
   }
 }

@@ -1,28 +1,61 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { AuthService } from '../auth/auth.service';
+import { AsyncPipe } from '@angular/common';
+import { LucideAngularModule } from 'lucide-angular';
+
+type LucideIconName = 'home' | 'app-window' | 'settings';
 
 type NavItem = {
   label: string;
   path: string;
-  icon: 'home' | 'workspace' | 'profile' | 'settings';
+  icon: LucideIconName;
 };
 
 @Component({
   standalone:true,
   selector: 'app-sidebar-component',
-  imports: [ RouterLink,
-    RouterLinkActive],
+  imports: [ RouterLink,RouterLinkActive,AsyncPipe,LucideAngularModule],
   templateUrl: './sidebar-component.html',
   styleUrl: './sidebar-component.css',
 })
 export class SidebarComponent {
+  private router = inject(Router);
+  auth = inject(AuthService);
   appName = 'PaperHub';
-    nav: NavItem[] = [
-      { label: 'Home',         path: '/home',      icon: 'home' },
-      { label: 'My Workspace', path: '/workspace', icon: 'workspace' },
-      { label: 'Profile',      path: '/profile',   icon: 'profile' },
-      { label: 'Settings',     path: '/settings',  icon: 'settings' },
-    ];
+  nav: NavItem[] = [
+    { label: 'Home',         path: '/home',      icon: 'home' },
+    { label: 'My Workspace', path: '/workspace', icon: 'app-window' },
+    { label: 'Settings',     path: '/settings',  icon: 'settings' },
+  ];
 
-    trackByPath = (_: number, item: NavItem) => item.path
+  showProfileMenu = false;
+  trackByPath = (_: number, item: NavItem) => item.path
+
+  toggleProfileMenu() {
+    this.showProfileMenu = !this.showProfileMenu;
+  }
+
+  closeProfileMenu() {
+    this.showProfileMenu = false;
+  }
+
+  async goToProfile() {
+    this.closeProfileMenu();
+    try {
+      await this.router.navigateByUrl('/profile');
+    } catch (err) {
+      console.error('Error navigating to profile', err);
+    }
+  }
+
+  async logout() {
+    try {
+      await this.auth.signOut();
+      await this.router.navigateByUrl('/login');
+    } catch (err) {
+      console.error('Error during logout', err);
+    }
+  }
 }
