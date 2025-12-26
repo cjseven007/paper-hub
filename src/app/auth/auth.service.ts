@@ -12,7 +12,7 @@ import {
   docData,
   setDoc,
 } from '@angular/fire/firestore';
-import { Observable, of, switchMap,map } from 'rxjs';
+import { Observable, of, switchMap, map, catchError, shareReplay } from 'rxjs';
 import { user as authUser$ } from '@angular/fire/auth';
 import { getDoc } from '@angular/fire/firestore';
 
@@ -58,6 +58,19 @@ export class AuthService {
         })
       );
     })
+  );
+
+  /** Admin flag based on `admins/{uid}` doc existing */
+  isAdmin$: Observable<boolean> = this.user$.pipe(
+    switchMap((user: User | null) => {
+      if (!user) return of(false);
+      const ref = doc(this.firestore, 'admins', user.uid);
+      return docData(ref).pipe(
+        map(adminDoc => !!adminDoc),
+        catchError(() => of(false))
+      );
+    }),
+    shareReplay({ bufferSize: 1, refCount: true })
   );
 
   async signInWithGoogle(): Promise<void> {

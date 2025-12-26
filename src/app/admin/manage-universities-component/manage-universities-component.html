@@ -1,0 +1,283 @@
+<div class="flex h-full flex-col gap-6 bg-white">
+  <div>
+    <h1 class="text-xl font-semibold text-zinc-900">Manage universities</h1>
+    <p class="text-sm text-zinc-500">
+      Add, edit, or remove universities and their courses. Only admins can access this page.
+    </p>
+  </div>
+
+  <div class="grid h-full gap-6 md:grid-cols-[minmax(0,0.3fr)_minmax(0,0.7fr)] mb-5">
+    <!-- Left: universities list -->
+    <div class="flex flex-col rounded-xl border border-zinc-200 bg-white p-4">
+      <div class="mb-3 flex items-center justify-between gap-2">
+        <h2 class="text-sm font-semibold text-zinc-800">Universities</h2>
+        <button
+          type="button"
+          (click)="openAddUniModal()"
+          class="inline-flex items-center rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-800 hover:bg-zinc-50"
+        >
+          +
+          <span class="ml-1">Add</span>
+        </button>
+      </div>
+
+      <div class="flex-1 space-y-1 overflow-auto">
+        @for (uni of universities; track uni.id) {
+        <button
+          type="button"
+          (click)="selectUniversity(uni)"
+          class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-zinc-50"
+          [class.bg-zinc-100]="uni.id === selectedUniversityId"
+        >
+          <span class="truncate">{{ uni.name }}</span>
+          <span class="text-xs text-zinc-400"> {{ uni.courses.length || 0 }} courses </span>
+        </button>
+        } @if (!universities.length) {
+        <p class="text-xs text-zinc-400">No universities yet.</p>
+        }
+      </div>
+    </div>
+
+    <!-- Right: selected university details -->
+    <div class="rounded-xl border border-zinc-200 bg-white p-4">
+      @if (selectedUniversity) {
+      <div class="mb-4 flex items-start justify-between gap-4">
+        <div>
+          <h2 class="text-sm font-semibold text-zinc-800">
+            {{ selectedUniversity.name }}
+          </h2>
+          <p class="text-xs text-zinc-500">Manage courses and rename this university.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            (click)="openEditNameModal()"
+            class="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-800 hover:bg-zinc-50"
+          >
+            Edit name
+          </button>
+          <button
+            type="button"
+            (click)="openAddCourseModal()"
+            class="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-800"
+          >
+            Add course
+          </button>
+          <button
+            type="button"
+            (click)="openDeleteUniModal()"
+            class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-semibold text-zinc-800">Courses</h3>
+          <span class="text-xs text-zinc-400"> {{ editingCourses.length }} total </span>
+        </div>
+
+        <div class="space-y-2 md:max-h-120 max-h-90 overflow-auto">
+          @for (course of editingCourses; track course; let idx = $index) {
+          <div
+            class="flex items-center justify-between rounded-lg border border-zinc-200 px-3 py-2 text-sm"
+          >
+            <span class="truncate">{{ course }}</span>
+            <button
+              type="button"
+              (click)="openDeleteCourseModal(idx)"
+              class="text-xs text-red-500 hover:text-red-700"
+            >
+              Remove
+            </button>
+          </div>
+          } @if (!editingCourses.length) {
+          <p class="text-xs text-zinc-400">
+            No courses for this university yet. Click &ldquo;Add course&rdquo; to create one.
+          </p>
+          }
+        </div>
+      </div>
+      } @else {
+      <div class="flex h-full items-center justify-center">
+        <p class="text-sm text-zinc-500">
+          Select a university on the left to manage its details and courses.
+        </p>
+      </div>
+      }
+    </div>
+  </div>
+
+  <!-- ============ Modals ============ -->
+
+  <!-- Add university modal -->
+  @if (showAddUniModal) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+    <div class="w-full max-w-sm rounded-2xl bg-white p-5 shadow-lg">
+      <h2 class="mb-2 text-sm font-semibold text-zinc-900">Add university</h2>
+      <p class="mb-4 text-xs text-zinc-500">Enter the name of the new university.</p>
+      <div class="space-y-4">
+        <input
+          type="text"
+          [(ngModel)]="newUniversityName"
+          placeholder="University name"
+          class="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900"
+        />
+        <div class="flex justify-end gap-2">
+          <button
+            type="button"
+            (click)="closeAddUniModal()"
+            class="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            (click)="addUniversity()"
+            [disabled]="!newUniversityName.trim()"
+            class="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            Add
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  }
+
+  <!-- Edit name modal -->
+  @if (showEditNameModal && selectedUniversity) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+    <div class="w-full max-w-sm rounded-2xl bg-white p-5 shadow-lg">
+      <h2 class="mb-2 text-sm font-semibold text-zinc-900">Edit university name</h2>
+      <p class="mb-4 text-xs text-zinc-500">
+        Update the name of &ldquo;{{ selectedUniversity.name }}&rdquo;.
+      </p>
+      <div class="space-y-4">
+        <input
+          type="text"
+          [(ngModel)]="editUniversityName"
+          class="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900"
+        />
+        <div class="flex justify-end gap-2">
+          <button
+            type="button"
+            (click)="closeEditNameModal()"
+            class="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            (click)="saveUniversityName()"
+            [disabled]="!editUniversityName.trim()"
+            class="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  }
+
+  <!-- Add course modal -->
+  @if (showAddCourseModal && selectedUniversity) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+    <div class="w-full max-w-sm rounded-2xl bg-white p-5 shadow-lg">
+      <h2 class="mb-2 text-sm font-semibold text-zinc-900">Add course</h2>
+      <p class="mb-4 text-xs text-zinc-500">
+        Add a new course to &ldquo;{{ selectedUniversity.name }}&rdquo;.
+      </p>
+      <div class="space-y-4">
+        <input
+          type="text"
+          [(ngModel)]="newCourseName"
+          placeholder="Course name"
+          class="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900"
+        />
+        <div class="flex justify-end gap-2">
+          <button
+            type="button"
+            (click)="closeAddCourseModal()"
+            class="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            (click)="addCourse()"
+            [disabled]="!newCourseName.trim()"
+            class="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            Add
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  }
+</div>
+
+@if (showDeleteUniModal && selectedUniversity) {
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+  <div class="w-full max-w-sm rounded-2xl bg-white p-5 shadow-lg">
+    <h2 class="mb-2 text-sm font-semibold text-zinc-900">Delete university</h2>
+    <p class="mb-4 text-xs text-zinc-500">
+      Are you sure you want to delete
+      <span class="font-medium text-zinc-900"> "{{ selectedUniversity.name }}" </span>
+      and all of its courses? This action cannot be undone.
+    </p>
+
+    <div class="flex justify-end gap-2">
+      <button
+        type="button"
+        (click)="closeDeleteUniModal()"
+        class="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+      >
+        Cancel
+      </button>
+
+      <button
+        type="button"
+        (click)="confirmDeleteUniversity()"
+        class="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700"
+      >
+        Delete
+      </button>
+    </div>
+  </div>
+</div>
+} @if (showDeleteCourseModal) {
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+  <div class="w-full max-w-sm rounded-2xl bg-white p-5 shadow-lg">
+    <h2 class="mb-2 text-sm font-semibold text-zinc-900">Remove course</h2>
+
+    <p class="mb-4 text-xs text-zinc-500">
+      Are you sure you want to remove
+      <span class="font-medium text-zinc-900"> "{{ pendingDeleteCourseName }}" </span>
+      from this university?
+    </p>
+
+    <div class="flex justify-end gap-2">
+      <button
+        type="button"
+        (click)="closeDeleteCourseModal()"
+        class="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+      >
+        Cancel
+      </button>
+
+      <button
+        type="button"
+        (click)="confirmDeleteCourse()"
+        class="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700"
+      >
+        Remove
+      </button>
+    </div>
+  </div>
+</div>
+}

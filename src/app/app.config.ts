@@ -10,9 +10,10 @@ import { environment } from '../environment/environment';
 
 import {
   LucideAngularModule,
-  Home,
+  House,
   AppWindow,
   Settings,
+  University,
   User,
 } from 'lucide-angular';
 
@@ -27,9 +28,10 @@ export const appConfig: ApplicationConfig = {
     provideFirestore(() => getFirestore()),
     importProvidersFrom(
       LucideAngularModule.pick({
-        Home,
+        House,
         AppWindow,
         Settings,
+        University,
         User,
       })
     ),
