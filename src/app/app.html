@@ -1,12 +1,15 @@
-<div class="min-h-dvh bg-white text-zinc-900">
-  @if(showShell()){
-  <div class="md:flex">
+<div class="h-dvh bg-white text-zinc-900">
+  @if (showShell()) {
+  <div class="flex h-full">
     <app-sidebar-component></app-sidebar-component>
-    <main class="flex-1 pb-14 md:pb-0 md:p-6 p-4">
+
+    <main class="flex-1 h-full overflow-y-auto pb-14 md:pb-0 md:p-6 p-4">
+      <!-- pb-14 for mobile bottom nav spacing -->
       <router-outlet></router-outlet>
     </main>
   </div>
-  }@else {
+  } @else {
+  <!-- Auth pages (login / complete-profile) can control their own height -->
   <router-outlet></router-outlet>
   }
 </div>

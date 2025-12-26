@@ -3,6 +3,11 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../auth.service';
+import {
+  UniversityService,
+  University,
+} from '../../university/university.service';
+import { Observable } from 'rxjs';
 
 @Component({
   selector: 'app-complete-profile',
@@ -12,20 +17,50 @@ import { AuthService } from '../auth.service';
   styleUrl: './complete-profile-component.css',
 })
 export class CompleteProfileComponent {
-private auth = inject(AuthService);
+  private auth = inject(AuthService);
   private router = inject(Router);
+  private universityService = inject(UniversityService);
+
+  universities$: Observable<University[]> = this.universityService.getUniversities();
 
   loading = false;
 
+  // form model
+  name = '';
+  selectedUniversity = '';
+  selectedCourse = '';
+  coursesForSelected: string[] = [];
+
+  onUniversityChange(universityName: string, universities: University[]) {
+    this.selectedUniversity = universityName;
+    const uni = universities.find(u => u.name === universityName);
+    this.coursesForSelected = uni?.courses ?? [];
+
+    // reset course if not in this uni
+    if (!this.coursesForSelected.includes(this.selectedCourse)) {
+      this.selectedCourse = '';
+    }
+  }
+
   async submit(form: NgForm) {
-    if (form.invalid) return;
+    if (this.loading) return;
+
+    // basic validation
+    if (!this.name || !this.selectedUniversity || !this.selectedCourse) {
+      return;
+    }
+
     this.loading = true;
     try {
-      await this.auth.saveProfile(form.value);
-      this.router.navigateByUrl('/home');
+      await this.auth.saveProfile({
+        name: this.name.trim(),
+        university: this.selectedUniversity,
+        course: this.selectedCourse,
+      });
+
+      await this.router.navigateByUrl('/home');
     } catch (e) {
-      console.error(e);
-    } finally {
+      console.error('Error saving profile', e);
       this.loading = false;
     }
   }
