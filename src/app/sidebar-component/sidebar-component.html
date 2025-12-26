@@ -57,7 +57,7 @@
           <lucide-icon name="university" class="h-5 w-5"></lucide-icon>
         </span>
 
-        <span class="truncate">Manage universities</span>
+        <span class="truncate">Manage Universities</span>
 
         <!-- Active indicator dot -->
         <span
@@ -144,6 +144,17 @@
         <lucide-icon [name]="item.icon" class="h-5 w-5"></lucide-icon>
       </span>
       <span class="truncate">{{ item.label }}</span>
+    </a>
+    } @if(isAdmin){
+    <a
+      [routerLink]="'/manage-universities'"
+      routerLinkActive="text-zinc-900"
+      class="flex flex-1 flex-col items-center justify-center gap-1 py-2 text-xs font-medium text-zinc-500 hover:text-zinc-900 transition"
+    >
+      <span class="grid h-8 w-8 place-items-center rounded-full">
+        <lucide-icon name="university" class="h-5 w-5"></lucide-icon>
+      </span>
+      <span class="truncate">Manage Uni</span>
     </a>
     }
 
