@@ -37,28 +37,28 @@ export class AuthService {
   /** User profile from Firestore */
   profile$: Observable<UserProfile | null> = this.user$.pipe(
     switchMap((user: User | null) => {
-        if (!user) return of(null);
+      if (!user) return of(null);
 
-        const ref = doc(this.firestore, 'users', user.uid);
-        return docData(ref).pipe(
+      const ref = doc(this.firestore, 'users', user.uid);
+      return docData(ref).pipe(
         map((data: any | undefined) => {
-            if (!data) return null;
+          if (!data) return null;
 
-            const profile: UserProfile = {
+          const profile: UserProfile = {
             uid: data.uid ?? user.uid,
             name: data.name ?? '',
             university: data.university ?? '',
             course: data.course ?? '',
             email: data.email ?? user.email ?? null,
             photoURL: data.photoURL ?? user.photoURL ?? null,
-            completed: data.completed ?? false, // 👈 default to false if missing
-            };
+            completed: data.completed ?? false,
+          };
 
-            return profile;
+          return profile;
         })
-        );
+      );
     })
-    );
+  );
 
   async signInWithGoogle(): Promise<void> {
     const provider = new GoogleAuthProvider();

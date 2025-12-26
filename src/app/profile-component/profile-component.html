@@ -1,1 +1,113 @@
-<p>profile-component works!</p>
+<div class="relative flex h-full items-center justify-center bg-white">
+  <!-- Show spinner until we have both profile and universities -->
+  @if (!profile || !universities.length) {
+  <div class="flex items-center justify-center">
+    <span
+      class="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900"
+    ></span>
+  </div>
+  } @else {
+  <div class="w-full max-w-lg rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+    <h1 class="mb-2 text-lg font-semibold text-zinc-900">My Profile</h1>
+    <p class="mb-6 text-sm text-zinc-500">
+      Update your basic details. Email and profile picture come from your Google account and cannot
+      be changed here.
+    </p>
+
+    <!-- Header: Avatar + Email -->
+    <div class="mb-6 flex items-center gap-4">
+      <div
+        class="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-zinc-100 text-lg font-semibold text-zinc-700"
+      >
+        @if (profile.photoURL) {
+        <img [src]="profile.photoURL" alt="Profile picture" class="h-full w-full object-cover" />
+        } @else {
+        <span>{{ profile.name ? profile.name[0] : '?' }}</span>
+        }
+      </div>
+      <div>
+        <div class="text-sm font-medium text-zinc-900">{{ profile.name }}</div>
+        <div class="text-xs text-zinc-500">{{ profile.email }}</div>
+      </div>
+    </div>
+
+    <form #f="ngForm" (ngSubmit)="submit(f)" class="space-y-4">
+      <!-- Name -->
+      <div>
+        <label class="mb-1 block text-sm font-medium text-zinc-700">Name</label>
+        <input
+          type="text"
+          name="name"
+          [(ngModel)]="name"
+          required
+          class="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900"
+        />
+      </div>
+
+      <!-- University -->
+      <div>
+        <label class="mb-1 block text-sm font-medium text-zinc-700">University</label>
+        <select
+          name="university"
+          [(ngModel)]="selectedUniversity"
+          (ngModelChange)="onUniversityChange($event)"
+          required
+          class="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 bg-white"
+        >
+          <option value="" disabled>Select university</option>
+          @for (uni of universities; track uni.id) {
+          <option [value]="uni.name">{{ uni.name }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Course -->
+      <div>
+        <label class="mb-1 block text-sm font-medium text-zinc-700">Course</label>
+        <select
+          name="course"
+          [(ngModel)]="selectedCourse"
+          [disabled]="!coursesForSelected.length"
+          required
+          class="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 bg-white disabled:bg-zinc-100 disabled:text-zinc-400"
+        >
+          <option value="" disabled>Select course</option>
+          @for (course of coursesForSelected; track course) {
+          <option [value]="course">{{ course }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Email (read-only) -->
+      <div>
+        <label class="mb-1 block text-sm font-medium text-zinc-700">Email</label>
+        <input
+          type="email"
+          [value]="profile.email"
+          disabled
+          class="w-full cursor-not-allowed rounded-lg border border-zinc-200 bg-zinc-100 px-3 py-2 text-sm text-zinc-500"
+        />
+      </div>
+
+      <button
+        type="submit"
+        [disabled]="saving || !name || !selectedUniversity || !selectedCourse"
+        class="flex w-full items-center justify-center rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white disabled:opacity-60 disabled:cursor-not-allowed"
+      >
+        {{ saving ? 'Saving changes…' : 'Save changes' }}
+      </button>
+    </form>
+  </div>
+
+  <!-- Saving overlay -->
+  @if (saving) {
+  <div class="absolute inset-0 z-10 flex items-center justify-center bg-white/80 backdrop-blur">
+    <div class="flex flex-col items-center gap-3">
+      <span
+        class="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900"
+      ></span>
+      <p class="text-sm text-zinc-600">Saving your changes…</p>
+    </div>
+  </div>
+  } }
+</div>

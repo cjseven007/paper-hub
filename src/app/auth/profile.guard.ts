@@ -10,8 +10,8 @@ export const profileGuard: CanActivateFn = () => {
   return auth.profile$.pipe(
     take(1),
     map(profile => {
-      console.log('Profile in guard:', profile);
-      console.log('isComplete', profile?.completed);
+      // console.log('Profile in guard:', profile);
+      // console.log('isComplete', profile?.completed);
 
       // No profile doc at all -> go fill it in
       if (!profile) {
