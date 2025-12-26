@@ -24,7 +24,7 @@
     <!-- Middle spacer -->
     <div class="flex-1"></div>
 
-    <!-- Bottom: Nav buttons -->
+    <!-- Bottom: Nav buttons (without Profile) -->
     <nav class="space-y-1">
       @for (item of nav; track trackByPath($index, item)) {
       <a
@@ -36,32 +36,7 @@
         <span
           class="grid h-9 w-9 place-items-center rounded-lg border border-zinc-200 bg-white group-hover:bg-zinc-50"
         >
-          @switch (item.icon) { @case ('home') {
-          <svg viewBox="0 0 24 24" class="h-5 w-5">
-            <path fill="currentColor" d="M12 3l9 8h-3v10h-5v-6H11v6H6V11H3l9-8Z" />
-          </svg>
-          } @case ('workspace') {
-          <svg viewBox="0 0 24 24" class="h-5 w-5">
-            <path
-              fill="currentColor"
-              d="M4 6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V6Zm3-1a1 1 0 0 0-1 1v3h14V6a1 1 0 0 0-1-1H7Zm13 6H6v7a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-7Z"
-            />
-          </svg>
-          } @case ('profile') {
-          <svg viewBox="0 0 24 24" class="h-5 w-5">
-            <path
-              fill="currentColor"
-              d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4.4 0-8 2.2-8 5v1h16v-1c0-2.8-3.6-5-8-5Z"
-            />
-          </svg>
-          } @case ('settings') {
-          <svg viewBox="0 0 24 24" class="h-5 w-5">
-            <path
-              fill="currentColor"
-              d="M19.4 13a7.9 7.9 0 0 0 0-2l2-1.6-2-3.4-2.4 1a8 8 0 0 0-1.7-1l-.4-2.6H9.5L9.1 6a8 8 0 0 0-1.7 1l-2.4-1-2 3.4L5 11a7.9 7.9 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a8 8 0 0 0 1.7 1l.4 2.6h5l.4-2.6a8 8 0 0 0 1.7-1l2.4 1 2-3.4L19.4 13ZM12 15.2A3.2 3.2 0 1 1 15.2 12 3.2 3.2 0 0 1 12 15.2Z"
-            />
-          </svg>
-          } }
+          <lucide-icon [name]="item.icon" class="h-5 w-5"></lucide-icon>
         </span>
 
         <span class="truncate">{{ item.label }}</span>
@@ -74,6 +49,65 @@
       </a>
       }
     </nav>
+
+    <!-- Profile button (separated from nav) -->
+    <div class="mt-4 border-t border-zinc-200 pt-4">
+      @if (auth.profile$ | async; as profile) {
+      <button
+        type="button"
+        (click)="toggleProfileMenu()"
+        class="group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm hover:bg-zinc-100 transition"
+      >
+        <!-- Avatar -->
+        @if (profile.photoURL) {
+        <img
+          [src]="profile.photoURL"
+          alt="Profile photo"
+          class="h-8 w-8 rounded-full object-cover"
+          referrerpolicy="no-referrer"
+        />
+        } @else {
+        <div
+          class="grid h-8 w-8 place-items-center rounded-full bg-zinc-900 text-xs font-semibold text-white"
+        >
+          {{ profile.name ? profile.name.charAt(0).toUpperCase() : '?' }}
+        </div>
+        }
+
+        <!-- Name + secondary text -->
+        <div class="flex min-w-0 flex-col text-left">
+          <span class="truncate text-sm font-semibold text-zinc-900">
+            {{ profile.name || 'My Profile' }}
+          </span>
+          <span class="truncate text-xs text-zinc-500">
+            {{ profile.email || 'View & edit profile' }}
+          </span>
+        </div>
+
+        <!-- Chevron -->
+        <svg viewBox="0 0 24 24" class="ml-auto h-4 w-4 text-zinc-400 group-hover:text-zinc-600">
+          <path fill="currentColor" d="M8.7 9.3 10.1 8l4 4-4 4-1.4-1.4L11.3 12 8.7 9.3Z" />
+        </svg>
+      </button>
+      } @else {
+      <!-- Fallback while loading / no profile -->
+      <button
+        type="button"
+        (click)="toggleProfileMenu()"
+        class="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-100 transition"
+      >
+        <div
+          class="grid h-8 w-8 place-items-center rounded-full bg-zinc-200 text-xs font-semibold text-zinc-500"
+        >
+          ?
+        </div>
+        <div class="flex flex-col text-left">
+          <span class="text-sm font-semibold text-zinc-900">My Profile</span>
+          <span class="text-xs text-zinc-500">View options</span>
+        </div>
+      </button>
+      }
+    </div>
   </div>
 </aside>
 
@@ -89,35 +123,75 @@
       class="flex flex-1 flex-col items-center justify-center gap-1 py-2 text-xs font-medium text-zinc-500 hover:text-zinc-900 transition"
     >
       <span class="grid h-8 w-8 place-items-center rounded-full">
-        @switch (item.icon) { @case ('home') {
-        <svg viewBox="0 0 24 24" class="h-5 w-5">
-          <path fill="currentColor" d="M12 3l9 8h-3v10h-5v-6H11v6H6V11H3l9-8Z" />
-        </svg>
-        } @case ('workspace') {
-        <svg viewBox="0 0 24 24" class="h-5 w-5">
-          <path
-            fill="currentColor"
-            d="M4 6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V6Zm3-1a1 1 0 0 0-1 1v3h14V6a1 1 0 0 0-1-1H7Zm13 6H6v7a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-7Z"
-          />
-        </svg>
-        } @case ('profile') {
-        <svg viewBox="0 0 24 24" class="h-5 w-5">
-          <path
-            fill="currentColor"
-            d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4.4 0-8 2.2-8 5v1h16v-1c0-2.8-3.6-5-8-5Z"
-          />
-        </svg>
-        } @case ('settings') {
-        <svg viewBox="0 0 24 24" class="h-5 w-5">
-          <path
-            fill="currentColor"
-            d="M19.4 13a7.9 7.9 0 0 0 0-2l2-1.6-2-3.4-2.4 1a8 8 0 0 0-1.7-1l-.4-2.6H9.5L9.1 6a8 8 0 0 0-1.7 1l-2.4-1-2 3.4L5 11a7.9 7.9 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a8 8 0 0 0 1.7 1l.4 2.6h5l.4-2.6a8 8 0 0 0 1.7-1l2.4 1 2-3.4L19.4 13ZM12 15.2A3.2 3.2 0 1 1 15.2 12 3.2 3.2 0 0 1 12 15.2Z"
-          />
-        </svg>
-        } }
+        <lucide-icon [name]="item.icon" class="h-5 w-5"></lucide-icon>
       </span>
       <span class="truncate">{{ item.label }}</span>
     </a>
     }
+
+    <!-- Mobile profile button -->
+    <button
+      type="button"
+      (click)="toggleProfileMenu()"
+      class="flex flex-1 flex-col items-center justify-center gap-1 py-2 text-xs font-medium text-zinc-500 hover:text-zinc-900 transition"
+    >
+      @if (auth.profile$ | async; as profile) { @if (profile.photoURL) {
+      <img
+        [src]="profile.photoURL"
+        alt="Profile photo"
+        class="h-8 w-8 rounded-full object-cover"
+        referrerpolicy="no-referrer"
+      />
+      } @else {
+      <div
+        class="grid h-8 w-8 place-items-center rounded-full bg-zinc-900 text-[10px] font-semibold text-white"
+      >
+        {{ profile.name ? profile.name.charAt(0).toUpperCase() : '?' }}
+      </div>
+      } } @else {
+      <div
+        class="grid h-8 w-8 place-items-center rounded-full bg-zinc-200 text-[10px] font-semibold text-zinc-500"
+      >
+        ?
+      </div>
+      }
+      <span class="truncate">Profile</span>
+    </button>
   </div>
 </nav>
+
+<!-- Profile overlay (desktop + mobile) -->
+@if (showProfileMenu) {
+<div class="fixed inset-0 z-40 bg-black/20" (click)="closeProfileMenu()">
+  <!-- Panel positioned near bottom-left on desktop, centered-ish on mobile -->
+  <div
+    class="absolute bottom-20 left-1/2 w-64 max-w-[calc(100%-2rem)] -translate-x-1/2 rounded-xl border border-zinc-200 bg-white p-3 shadow-lg md:bottom-24 md:left-4 md:w-64 md:max-w-none md:translate-x-0"
+    (click)="$event.stopPropagation()"
+  >
+    <button
+      type="button"
+      (click)="goToProfile()"
+      class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+    >
+      <span>Edit profile</span>
+      <svg viewBox="0 0 24 24" class="h-4 w-4 text-zinc-400">
+        <path fill="currentColor" d="M8.7 9.3 10.1 8l4 4-4 4-1.4-1.4L11.3 12 8.7 9.3Z" />
+      </svg>
+    </button>
+
+    <button
+      type="button"
+      (click)="logout()"
+      class="mt-2 flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+    >
+      <span>Log out</span>
+      <svg viewBox="0 0 24 24" class="h-4 w-4">
+        <path
+          fill="currentColor"
+          d="M10 4a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1h-8a1 1 0 0 1-1-1v-3h2v2h6V5h-6v2h-2V4Zm-1.7 6.3 1.4-1.4L13 11.6V8h2v8h-2v-3.6l-3.3 2.7-1.4-1.4L10.6 12 8.3 10.3Z"
+        />
+      </svg>
+    </button>
+  </div>
+</div>
+}
