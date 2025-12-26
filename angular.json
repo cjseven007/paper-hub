@@ -33,7 +33,7 @@
           "configurations": {
             "production": {
               "prerender": false,
-"ssr": false,
+              "ssr": false,
               "outputPath": "dist",
               "budgets": [
                 {
