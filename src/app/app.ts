@@ -1,5 +1,5 @@
-import { Component, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Component, computed, signal, inject } from '@angular/core';
+import { RouterOutlet, Router, RouterLink } from '@angular/router';
 import { SidebarComponent } from './sidebar-component/sidebar-component';
 
 @Component({
@@ -11,4 +11,9 @@ import { SidebarComponent } from './sidebar-component/sidebar-component';
 })
 export class App {
   protected readonly title = signal('paper-hub');
+  private router = inject(Router);
+  showShell() {
+    const url = this.router.url;
+    return !url.startsWith('/login') && !url.startsWith('/complete-profile');
+  }
 }
