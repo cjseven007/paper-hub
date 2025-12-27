@@ -13,9 +13,13 @@ import {
   serverTimestamp,
   getDoc,
   limit,
+  startAt,
+  endAt,
+  deleteDoc,
+  getDocs
 } from '@angular/fire/firestore';
+import { Observable, combineLatest, map } from 'rxjs';
 
-import { Observable } from 'rxjs';
 import { ParsedQuestion } from './paper-parser.service';
 import { University } from './university.service';
 
@@ -201,6 +205,10 @@ export class PaperService {
       answers: emptyAnswers,
     });
   }
+  async deleteAnswerDoc(answerId: string) {
+    const ref = doc(this.answersCol, answerId);
+    return deleteDoc(ref);
+    }
 
   async savePaperToWorkspace(
     paper: PaperDoc,
@@ -215,14 +223,79 @@ export class PaperService {
       ownerPhotoURL ?? null
     );
   }
-  getPublishedPapers(limitCount = 12): Observable<PaperDoc[]> {
-  const q = query(
-    this.papersCol,
-    where('status', '==', 'published'),
-    orderBy('createdAt', 'desc'),
-    limit(limitCount)
-  );
+  getPublishedPapers(limitCount = 100): Observable<PaperDoc[]> {
+    const q = query(
+        this.papersCol,
+        where('status', '==', 'published'),
+        orderBy('createdAt', 'desc'),
+        limit(limitCount)
+    );
 
-  return collectionData(q, { idField: 'id' }) as Observable<PaperDoc[]>;
-}
+    return collectionData(q, { idField: 'id' }) as Observable<PaperDoc[]>;
+    }
+    searchPublishedPapers(term: string, limitCount = 12): Observable<PaperDoc[]> {
+        const trimmed = term.trim();
+        if (!trimmed) {
+            return this.getPublishedPapers(limitCount);
+        }
+
+        const termUpper = trimmed.toUpperCase();
+        const termLower = trimmed.toLowerCase();
+
+        const baseStatus = where('status', '==', 'published');
+
+        const byCode = query(
+            this.papersCol,
+            baseStatus,
+            orderBy('courseCode'),
+            startAt(termUpper),
+            endAt(termUpper + '\uf8ff'),
+            limit(limitCount)
+        );
+
+        const byName = query(
+            this.papersCol,
+            baseStatus,
+            orderBy('courseName'),
+            startAt(termLower),
+            endAt(termLower + '\uf8ff'),
+            limit(limitCount)
+        );
+
+        const byUni = query(
+            this.papersCol,
+            baseStatus,
+            orderBy('universityName'),
+            startAt(termLower),
+            endAt(termLower + '\uf8ff'),
+            limit(limitCount)
+        );
+
+        return combineLatest([
+            collectionData(byCode, { idField: 'id' }) as Observable<PaperDoc[]>,
+            collectionData(byName, { idField: 'id' }) as Observable<PaperDoc[]>,
+            collectionData(byUni, { idField: 'id' }) as Observable<PaperDoc[]>,
+        ]).pipe(
+            map(([codeList, nameList, uniList]) => {
+            const mapById = new Map<string, PaperDoc>();
+            for (const list of [codeList, nameList, uniList]) {
+                for (const p of list) {
+                mapById.set(p.id, p as PaperDoc);
+                }
+            }
+            return Array.from(mapById.values()).slice(0, limitCount);
+            })
+        );
+        }
+    async userHasAnswerForPaper(ownerUid: string, paperId: string): Promise<boolean> {
+    const qref = query(
+        this.answersCol,
+        where('ownerUid', '==', ownerUid),
+        where('paperId', '==', paperId),
+        limit(1)
+    );
+
+    const snap = await getDocs(qref);
+    return !snap.empty;
+    }
 }

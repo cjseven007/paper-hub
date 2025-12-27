@@ -9,7 +9,7 @@ import { AuthService } from '../../auth/auth.service';
 import { PaperService, PaperDoc, PaperStatus } from '../../services/paper.service';
 
 import { PaperCardComponent } from '../../components/paper-card-component/paper-card-component';
-import { UniversityService, University } from '../../services/university.service'; 
+import { UniversityService, University } from '../../services/university.service';
 @Component({
   selector: 'app-contribute-paper-component',
   standalone: true,
@@ -66,6 +66,12 @@ export class ContributePaperComponent {
   questions = signal<ParsedQuestion[]>([]);
   selectedQuestionIndex = signal(0);
 
+  // preview / workspace state
+  activePreviewPaper = signal<PaperDoc | null>(null);
+  checkingWorkspace = signal(false);
+  alreadyInWorkspace = signal(false);
+  previewError = signal<string | null>(null);
+
   constructor() {
     effect(() => {
       const user = this.userSig();
@@ -82,17 +88,17 @@ export class ContributePaperComponent {
         return;
       }
 
-      this.papersLoading.set(true);  //  start loading
+      this.papersLoading.set(true);
 
       this.papersSub = this.paperService.getUserPapers(user.uid).subscribe({
         next: (papers) => {
           this.userPapers.set(papers);
-          this.papersLoading.set(false);   //  stop loading on first data
+          this.papersLoading.set(false);
         },
         error: (err) => {
           console.error('Error loading papers', err);
           this.error.set('Failed to load your papers.');
-          this.papersLoading.set(false);   //  also stop on error
+          this.papersLoading.set(false);
         },
       });
     });
@@ -107,16 +113,6 @@ export class ContributePaperComponent {
       error: (err) => {
         console.error('Failed to load universities', err);
         this.universitiesLoading.set(false);
-      },
-    });
-  }
-
-  private subscribeToPapers(uid: string) {
-    this.paperService.getUserPapers(uid).subscribe({
-      next: (papers) => this.userPapers.set(papers),
-      error: (err) => {
-        console.error('Error loading papers', err);
-        this.error.set('Failed to load your papers.');
       },
     });
   }
@@ -172,7 +168,7 @@ export class ContributePaperComponent {
       this.examYear.set(parsed.exam_year ?? '');
 
       this.paperTitle.set(
-        (parsed.course_code && parsed.exam_year)
+        parsed.course_code && parsed.exam_year
           ? `${parsed.course_code} ${parsed.exam_year} Exam`
           : file.name.replace(/\.pdf$/i, '')
       );
@@ -186,7 +182,6 @@ export class ContributePaperComponent {
       this.activeStatus.set('draft');
 
       this.showUploadDialog.set(false);
-      // show edit modal so user can tweak questions
       this.showEditDialog.set(true);
     } catch (e: any) {
       console.error('Error parsing paper', e);
@@ -221,15 +216,31 @@ export class ContributePaperComponent {
 
     this.showEditDialog.set(true);
   }
+
   onUniversityChange(id: string | null) {
     this.selectedUniversityId.set(id);
   }
 
-  activePreviewPaper = signal<PaperDoc | null>(null);
-
-  private openPreview(paper: PaperDoc) {
+  // preview for published paper (with workspace check)
+  async openPreview(paper: PaperDoc) {
     this.activePreviewPaper.set(paper);
     this.showPreviewDialog.set(true);
+    this.previewError.set(null);
+    this.alreadyInWorkspace.set(false);
+
+    const uid = this.userUid();
+    if (!uid) return;
+
+    this.checkingWorkspace.set(true);
+    try {
+      const exists = await this.paperService.userHasAnswerForPaper(uid, paper.id);
+      this.alreadyInWorkspace.set(exists);
+    } catch (e) {
+      console.error('Error checking workspace from contribute page', e);
+      // fail silently; user can still attempt save, extra guard in save
+    } finally {
+      this.checkingWorkspace.set(false);
+    }
   }
 
   closeEditDialog() {
@@ -239,6 +250,9 @@ export class ContributePaperComponent {
   closePreviewDialog() {
     this.showPreviewDialog.set(false);
     this.activePreviewPaper.set(null);
+    this.previewError.set(null);
+    this.alreadyInWorkspace.set(false);
+    this.checkingWorkspace.set(false);
   }
 
   selectQuestion(index: number) {
@@ -286,8 +300,6 @@ export class ContributePaperComponent {
       ownerUid: user.uid,
       ownerName: this.userName(),
       ownerPhotoURL: this.userPhotoURL(),
-
-      // 🔹 NEW
       universityId: uniId ?? null,
       universityName: uni?.name ?? null,
     };
@@ -311,7 +323,6 @@ export class ContributePaperComponent {
     }
   }
 
-
   // Save questions to workspace – creates answer doc
   async saveQuestionsToWorkspace() {
     const user = this.userSig();
@@ -319,10 +330,25 @@ export class ContributePaperComponent {
 
     if (!user || !paper) return;
 
+    // guard if we already know it's in workspace
+    if (this.alreadyInWorkspace()) {
+      this.previewError.set('This paper is already in your workspace.');
+      return;
+    }
+
     this.saving.set(true);
+    this.previewError.set(null);
     this.error.set(null);
 
     try {
+      // double-check just before writing to avoid race conditions
+      const exists = await this.paperService.userHasAnswerForPaper(user.uid, paper.id);
+      if (exists) {
+        this.alreadyInWorkspace.set(true);
+        this.previewError.set('This paper is already in your workspace.');
+        return;
+      }
+
       await this.paperService.savePaperToWorkspace(paper, {
         ownerUid: user.uid,
         ownerName: this.userName(),
@@ -331,9 +357,10 @@ export class ContributePaperComponent {
 
       this.showPreviewDialog.set(false);
       this.activePreviewPaper.set(null);
+      this.alreadyInWorkspace.set(false);
     } catch (e: any) {
       console.error('Error creating answer doc', e);
-      this.error.set('Failed to save questions to workspace.');
+      this.previewError.set('Failed to save questions to workspace.');
     } finally {
       this.saving.set(false);
     }

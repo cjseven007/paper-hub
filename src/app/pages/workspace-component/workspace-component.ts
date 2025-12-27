@@ -22,12 +22,12 @@ export class WorkspaceComponent {
 
   private userSig = toSignal(this.auth.user$, { initialValue: null });
 
-  userUid = computed(() => this.userSig()?.uid ?? null);
-  userName = computed(() => this.userSig()?.displayName ?? null);
-
   answerDocs = signal<AnswerDoc[]>([]);
   error = signal<string | null>(null);
-  answersLoading = signal(true);  // 👈 NEW
+  answersLoading = signal(true);
+  deletingId = signal<string | null>(null);
+  deleteTarget = signal<AnswerDoc | null>(null);
+  showDeleteDialog = signal(false);
 
   private answersSub: Subscription | null = null;
 
@@ -47,6 +47,7 @@ export class WorkspaceComponent {
       }
 
       this.answersLoading.set(true);
+      this.error.set(null);
 
       this.answersSub = this.paperService.getUserAnswerDocs(user.uid).subscribe({
         next: (answers) => {
@@ -64,5 +65,57 @@ export class WorkspaceComponent {
 
   openAnswer(answer: AnswerDoc) {
     this.router.navigate(['/workspace', answer.id]);
+  }
+
+  async deleteAnswer(answer: AnswerDoc) {
+    const confirmDelete = window.confirm(
+      'Delete this answer set from your workspace? This cannot be undone.'
+    );
+    if (!confirmDelete) return;
+
+    this.deletingId.set(answer.id);
+    this.error.set(null);
+
+    try {
+      await this.paperService.deleteAnswerDoc(answer.id);
+      // Firestore subscription will auto-update answerDocs
+    } catch (e: any) {
+      console.error('Error deleting answer doc', e);
+      this.error.set('Failed to delete this answer. Please try again.');
+    } finally {
+      this.deletingId.set(null);
+    }
+  }
+
+  // called when trash icon is clicked
+  requestDelete(answer: AnswerDoc) {
+    this.deleteTarget.set(answer);
+    this.showDeleteDialog.set(true);
+    this.error.set(null);
+  }
+
+  closeDeleteDialog() {
+    this.showDeleteDialog.set(false);
+    this.deleteTarget.set(null);
+  }
+
+  async confirmDeleteAnswer() {
+    const answer = this.deleteTarget();
+    if (!answer) return;
+
+    this.deletingId.set(answer.id);
+    this.error.set(null);
+
+    try {
+      await this.paperService.deleteAnswerDoc(answer.id);
+      // subscription will auto-refresh list
+      this.showDeleteDialog.set(false);
+      this.deleteTarget.set(null);
+    } catch (e: any) {
+      console.error('Error deleting answer doc', e);
+      this.error.set('Failed to delete this answer. Please try again.');
+    } finally {
+      this.deletingId.set(null);
+    }
   }
 }

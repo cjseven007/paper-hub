@@ -28,18 +28,22 @@ export class HomeComponent {
   // data
   loading = signal(true);
   error = signal<string | null>(null);
-  allPapers = signal<PaperDoc[]>([]); // published only
+  allPapers = signal<PaperDoc[]>([]);   // all published (up to limit)
 
   // search
   searchTerm = signal('');
 
+  // filter client-side
   filteredPapers = computed(() => {
     const term = this.searchTerm().toLowerCase().trim();
     const papers = this.allPapers();
 
-    if (!term) return papers;
+    if (!term) {
+      // show up to 12 in the grid
+      return papers.slice(0, 12);
+    }
 
-    return papers.filter((p) => {
+    const filtered = papers.filter((p) => {
       const courseCode = (p.courseCode || '').toLowerCase();
       const courseName = (p.courseName || '').toLowerCase();
       const universityName = (p.universityName || '').toLowerCase();
@@ -50,6 +54,8 @@ export class HomeComponent {
         universityName.includes(term)
       );
     });
+
+    return filtered.slice(0, 12); // still cap at 3x4
   });
 
   // preview modal state
@@ -57,6 +63,9 @@ export class HomeComponent {
   activePaper = signal<PaperDoc | null>(null);
   savingToWorkspace = signal(false);
   previewError = signal<string | null>(null);
+
+  checkingWorkspace = signal(false);
+  alreadyInWorkspace = signal(false);
 
   constructor() {
     this.loadPublishedPapers();
@@ -66,7 +75,7 @@ export class HomeComponent {
     this.loading.set(true);
     this.error.set(null);
 
-    this.paperService.getPublishedPapers(12).subscribe({
+    this.paperService.getPublishedPapers(100).subscribe({
       next: (papers) => {
         this.allPapers.set(papers);
         this.loading.set(false);
@@ -83,17 +92,36 @@ export class HomeComponent {
     this.searchTerm.set(term);
   }
 
-  // when a paper card is clicked
-  openPaperPreview(paper: PaperDoc) {
+  async openPaperPreview(paper: PaperDoc) {
     this.activePaper.set(paper);
     this.previewError.set(null);
     this.showPreviewDialog.set(true);
+
+    // reset + check if already saved
+    this.alreadyInWorkspace.set(false);
+    const uid = this.userUid();
+    if (!uid) return;
+
+    this.checkingWorkspace.set(true);
+    try {
+      const exists = await this.paperService.userHasAnswerForPaper(uid, paper.id);
+      this.alreadyInWorkspace.set(exists);
+    } catch (e) {
+      console.error('Error checking workspace for paper', e);
+      // fail silently, user can still attempt to save
+    } finally {
+      this.checkingWorkspace.set(false);
+    }
   }
+
+  
 
   closePreviewDialog() {
     this.showPreviewDialog.set(false);
     this.activePaper.set(null);
     this.previewError.set(null);
+    this.alreadyInWorkspace.set(false);
+    this.checkingWorkspace.set(false);
   }
 
   async saveToWorkspaceFromHome() {
@@ -106,10 +134,24 @@ export class HomeComponent {
       return;
     }
 
+    // extra guard
+    if (this.alreadyInWorkspace()) {
+      this.previewError.set('This paper is already in your workspace.');
+      return;
+    }
+
     this.savingToWorkspace.set(true);
     this.previewError.set(null);
 
     try {
+      // Double-check just before writing (race-condition safe)
+      const exists = await this.paperService.userHasAnswerForPaper(uid, paper.id);
+      if (exists) {
+        this.alreadyInWorkspace.set(true);
+        this.previewError.set('This paper is already in your workspace.');
+        return;
+      }
+
       await this.paperService.savePaperToWorkspace(paper, {
         ownerUid: uid,
         ownerName: this.userName(),
@@ -118,6 +160,7 @@ export class HomeComponent {
 
       this.showPreviewDialog.set(false);
       this.activePaper.set(null);
+      this.alreadyInWorkspace.set(false);
     } catch (e: any) {
       console.error('Error saving paper to workspace from home', e);
       this.previewError.set('Failed to save to workspace. Please try again.');

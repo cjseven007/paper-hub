@@ -21,6 +21,8 @@ export class WorkspaceAnswerDetailComponent {
   private router = inject(Router);
   private paperService = inject(PaperService);
 
+  showBackConfirmDialog = signal(false);
+
   answerDoc = signal<AnswerDoc | null>(null);
   paper = signal<PaperDoc | null>(null);
   loading = signal(true);
@@ -139,15 +141,26 @@ export class WorkspaceAnswerDetailComponent {
     }
   }
 
-  async goBackToWorkspace() {
-    if (this.dirty()) {
-      const shouldSave = window.confirm(
-        'You have unsaved changes. Save before returning to workspace?'
-      );
-      if (shouldSave) {
-        await this.saveProgress();
-      }
+  onBackClick() {
+    if (!this.dirty()) {
+      // no changes, just go back
+      this.router.navigate(['/workspace']);
+      return;
     }
+    // unsaved changes → show modal
+    this.showBackConfirmDialog.set(true);
+  }
+
+  closeBackConfirmDialog() {
+    this.showBackConfirmDialog.set(false);
+  }
+
+  async confirmBack(save: boolean) {
+    const hasChanges = this.dirty();
+    if (save && hasChanges) {
+      await this.saveProgress();
+    }
+    this.showBackConfirmDialog.set(false);
     this.router.navigate(['/workspace']);
   }
 }

@@ -17,7 +17,8 @@ import {
   University,
   User,
   File,
-  NotebookPen
+  NotebookPen,
+  Trash2
 } from 'lucide-angular';
 import { provideHttpClient } from '@angular/common/http';
 
@@ -40,7 +41,8 @@ export const appConfig: ApplicationConfig = {
         University,
         User,
         File,
-        NotebookPen
+        NotebookPen,
+        Trash2
       })
     ),
   ]
