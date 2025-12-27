@@ -2,11 +2,11 @@ import { Component, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 
-import { AuthService, UserProfile } from '../auth/auth.service';
+import { AuthService, UserProfile } from '../../auth/auth.service';
 import {
   UniversityService,
   University,
-} from '../services/university.service';
+} from '../../services/university.service';
 import { toSignal } from '@angular/core/rxjs-interop';
 
 @Component({

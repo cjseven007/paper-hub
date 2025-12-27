@@ -1,10 +1,10 @@
 import { Routes } from '@angular/router';
 
-import { HomeComponent } from './home-component/home-component';
+import { HomeComponent } from './pages/home-component/home-component';
 import { WorkspaceComponent } from './workspace-component/workspace-component';
-import { ProfileComponent } from './profile-component/profile-component';
+import { ProfileComponent } from './pages/profile-component/profile-component';
 import { SettingsComponent } from './settings-component/settings-component';
-import { ContributePaperComponent } from './contribute-paper-component/contribute-paper-component';
+import { ContributePaperComponent } from './pages/contribute-paper-component/contribute-paper-component';
 
 import { LoginComponent } from './auth/login-component/login-component';
 import { CompleteProfileComponent } from './auth/complete-profile-component/complete-profile-component';

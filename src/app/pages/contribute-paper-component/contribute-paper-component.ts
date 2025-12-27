@@ -1,9 +1,9 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { PaperParserService, ParsedPaper, ParsedQuestion } from '../services/paper-parser.service';
+import { PaperParserService, ParsedPaper, ParsedQuestion } from '../../services/paper-parser.service';
 import { Firestore, addDoc, collection, serverTimestamp } from '@angular/fire/firestore';
-import { AuthService } from '../auth/auth.service';
+import { AuthService } from '../../auth/auth.service';
 import { toSignal } from '@angular/core/rxjs-interop';
 
 @Component({
