@@ -1,9 +1,9 @@
 import { Routes } from '@angular/router';
 
 import { HomeComponent } from './pages/home-component/home-component';
-import { WorkspaceComponent } from './workspace-component/workspace-component';
+import { WorkspaceComponent } from './pages/workspace-component/workspace-component';
 import { ProfileComponent } from './pages/profile-component/profile-component';
-import { SettingsComponent } from './settings-component/settings-component';
+import { SettingsComponent } from './pages/settings-component/settings-component';
 import { ContributePaperComponent } from './pages/contribute-paper-component/contribute-paper-component';
 
 import { LoginComponent } from './auth/login-component/login-component';

@@ -1,24 +1,38 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, effect } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { PaperParserService, ParsedPaper, ParsedQuestion } from '../../services/paper-parser.service';
-import { Firestore, addDoc, collection, serverTimestamp } from '@angular/fire/firestore';
-import { AuthService } from '../../auth/auth.service';
 import { toSignal } from '@angular/core/rxjs-interop';
+
+import { PaperParserService, ParsedPaper, ParsedQuestion } from '../../services/paper-parser.service';
+import { AuthService } from '../../auth/auth.service';
+import { PaperService, PaperDoc, PaperStatus } from '../../services/paper.service';
+
+import { PaperCardComponent } from '../../components/paper-card-component/paper-card-component';
 
 @Component({
   selector: 'app-contribute-paper-component',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, PaperCardComponent],
   templateUrl: './contribute-paper-component.html',
   styleUrl: './contribute-paper-component.css',
 })
 export class ContributePaperComponent {
   private parser = inject(PaperParserService);
-  private firestore = inject(Firestore);
   private auth = inject(AuthService);
+  private paperService = inject(PaperService);
 
+  // zoneless-friendly current user
   private userSig = toSignal(this.auth.user$, { initialValue: null });
+  private papersSub: Subscription | null = null;
+
+  // user info
+  userUid = computed(() => this.userSig()?.uid ?? null);
+  userName = computed(() => this.userSig()?.displayName ?? null);
+  userPhotoURL = computed(() => this.userSig()?.photoURL ?? null);
+
+  // Papers list
+  userPapers = signal<PaperDoc[]>([]);
 
   // UI state
   selectedFile = signal<File | null>(null);
@@ -26,10 +40,17 @@ export class ContributePaperComponent {
   saving = signal(false);
   error = signal<string | null>(null);
 
-  // Modal
+  // modals
   showUploadDialog = signal(false);
+  showEditDialog = signal(false);
+  showPreviewDialog = signal(false);
 
-  // Parsed & editable paper
+  // active paper editing/preview
+  editMode = signal<'create' | 'edit'>('create');
+  activePaperId = signal<string | null>(null);
+  activeStatus = signal<PaperStatus>('draft');
+
+  // parsed / editable fields
   paperTitle = signal('');
   courseCode = signal('');
   courseName = signal('');
@@ -38,21 +59,59 @@ export class ContributePaperComponent {
   questions = signal<ParsedQuestion[]>([]);
   selectedQuestionIndex = signal(0);
 
+  constructor() {
+    // React whenever the auth user changes
+    effect(() => {
+      const user = this.userSig();
+
+      // clean up previous Firestore subscription
+      if (this.papersSub) {
+        this.papersSub.unsubscribe();
+        this.papersSub = null;
+      }
+
+      if (user?.uid) {
+        this.papersSub = this.paperService.getUserPapers(user.uid).subscribe({
+          next: (papers) => this.userPapers.set(papers),
+          error: (err) => {
+            console.error('Error loading papers', err);
+            this.error.set('Failed to load your papers.');
+          },
+        });
+      } else {
+        this.userPapers.set([]);
+      }
+    });
+  }
+
+  private subscribeToPapers(uid: string) {
+    this.paperService.getUserPapers(uid).subscribe({
+      next: (papers) => this.userPapers.set(papers),
+      error: (err) => {
+        console.error('Error loading papers', err);
+        this.error.set('Failed to load your papers.');
+      },
+    });
+  }
+
+  // helpers
   get hasParsedPaper() {
     return this.questions().length > 0;
   }
 
+  // header actions
   openUploadDialog() {
     this.showUploadDialog.set(true);
     this.error.set(null);
+    this.selectedFile.set(null);
   }
 
   closeUploadDialog() {
     this.showUploadDialog.set(false);
     this.selectedFile.set(null);
-    this.error.set(null);
   }
 
+  // file change
   onFileChange(event: Event) {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0] ?? null;
@@ -60,10 +119,17 @@ export class ContributePaperComponent {
     this.error.set(null);
   }
 
+  // call Gemini via PaperParserService
   async parseWithGemini() {
     const file = this.selectedFile();
     if (!file) {
       this.error.set('Please select a PDF exam paper first.');
+      return;
+    }
+
+    const user = this.userSig();
+    if (!user) {
+      this.error.set('You must be logged in to parse a paper.');
       return;
     }
 
@@ -77,6 +143,7 @@ export class ContributePaperComponent {
       this.courseName.set(parsed.course_name ?? '');
       this.examDate.set(parsed.exam_date ?? '');
       this.examYear.set(parsed.exam_year ?? '');
+
       this.paperTitle.set(
         (parsed.course_code && parsed.exam_year)
           ? `${parsed.course_code} ${parsed.exam_year} Exam`
@@ -85,13 +152,61 @@ export class ContributePaperComponent {
 
       this.questions.set(parsed.questions ?? []);
       this.selectedQuestionIndex.set(0);
+
+      this.editMode.set('create');
+      this.activePaperId.set(null);
+      this.activeStatus.set('draft');
+
       this.showUploadDialog.set(false);
+      // show edit modal so user can tweak questions
+      this.showEditDialog.set(true);
     } catch (e: any) {
       console.error('Error parsing paper', e);
       this.error.set('Failed to parse the exam paper. Please try again.');
     } finally {
       this.parsing.set(false);
     }
+  }
+
+  // card click behaviour
+  onPaperCardClick(paper: PaperDoc) {
+    if (paper.status === 'draft') {
+      this.openEditForDraft(paper);
+    } else {
+      this.openPreview(paper);
+    }
+  }
+
+  private openEditForDraft(paper: PaperDoc) {
+    this.editMode.set('edit');
+    this.activePaperId.set(paper.id);
+    this.activeStatus.set('draft');
+
+    this.paperTitle.set(paper.title);
+    this.courseCode.set(paper.courseCode);
+    this.courseName.set(paper.courseName);
+    this.examDate.set(paper.examDate);
+    this.examYear.set(paper.examYear);
+    this.questions.set(paper.questions ?? []);
+    this.selectedQuestionIndex.set(0);
+
+    this.showEditDialog.set(true);
+  }
+
+  activePreviewPaper = signal<PaperDoc | null>(null);
+
+  private openPreview(paper: PaperDoc) {
+    this.activePreviewPaper.set(paper);
+    this.showPreviewDialog.set(true);
+  }
+
+  closeEditDialog() {
+    this.showEditDialog.set(false);
+  }
+
+  closePreviewDialog() {
+    this.showPreviewDialog.set(false);
+    this.activePreviewPaper.set(null);
   }
 
   selectQuestion(index: number) {
@@ -112,7 +227,8 @@ export class ContributePaperComponent {
     this.questions.set(qs);
   }
 
-  async savePaper() {
+  // Save draft or publish
+  async savePaper(status: PaperStatus) {
     if (!this.hasParsedPaper) return;
 
     const user = this.userSig();
@@ -124,31 +240,60 @@ export class ContributePaperComponent {
     this.saving.set(true);
     this.error.set(null);
 
-    try {
-      const colRef = collection(this.firestore, 'papers');
-      await addDoc(colRef, {
-        title: this.paperTitle(),
-        courseCode: this.courseCode(),
-        courseName: this.courseName(),
-        examDate: this.examDate(),
-        examYear: this.examYear(),
-        questions: this.questions(),
-        ownerUid: user.uid,
-        createdAt: serverTimestamp(),
-      });
+    const payload = {
+      title: this.paperTitle(),
+      courseCode: this.courseCode(),
+      courseName: this.courseName(),
+      examDate: this.examDate(),
+      examYear: this.examYear(),
+      questions: this.questions(),
+      status,
+      ownerUid: user.uid,
+      ownerName: this.userName(),
+      ownerPhotoURL: this.userPhotoURL(),
+    };
 
-      // Reset UI
-      this.selectedFile.set(null);
-      this.paperTitle.set('');
-      this.courseCode.set('');
-      this.courseName.set('');
-      this.examDate.set('');
-      this.examYear.set('');
-      this.questions.set([]);
-      this.selectedQuestionIndex.set(0);
+    try {
+      const existingId = this.activePaperId();
+      if (this.editMode() === 'edit' && existingId) {
+        await this.paperService.updatePaper(existingId, payload);
+      } else {
+        await this.paperService.createPaper(payload);
+      }
+
+      // close edit modal after saving
+      this.showEditDialog.set(false);
+      this.activePaperId.set(null);
+      this.editMode.set('create');
     } catch (e: any) {
       console.error('Error saving paper', e);
-      this.error.set('Failed to save paper to Firestore.');
+      this.error.set('Failed to save paper.');
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  // Save questions to workspace – creates answer doc
+  async saveQuestionsToWorkspace() {
+    const user = this.userSig();
+    const paper = this.activePreviewPaper();
+
+    if (!user || !paper) return;
+
+    this.saving.set(true);
+    this.error.set(null);
+
+    try {
+      await this.paperService.createAnswerDoc(
+        paper,
+        user.uid,
+        this.userName()
+      );
+      this.showPreviewDialog.set(false);
+      this.activePreviewPaper.set(null);
+    } catch (e: any) {
+      console.error('Error creating answer doc', e);
+      this.error.set('Failed to save questions to workspace.');
     } finally {
       this.saving.set(false);
     }

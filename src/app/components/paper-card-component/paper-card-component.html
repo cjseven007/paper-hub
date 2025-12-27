@@ -1,1 +1,65 @@
-<p>paper-card-component works!</p>
+<button
+  type="button"
+  (click)="paperClick.emit()"
+  class="flex h-full w-full flex-col rounded-xl border border-zinc-200 bg-white p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+>
+  <!-- Top: Icon + status -->
+  <div class="mb-2 flex items-start justify-between gap-2">
+    <div class="flex items-center gap-2">
+      <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-100 text-zinc-700">
+        <!-- document icon -->
+        <svg viewBox="0 0 24 24" class="h-5 w-5">
+          <path fill="currentColor" d="M6 2h7l5 5v15H6V2Zm7 1.5V8h4.5L13 3.5Z" />
+        </svg>
+      </div>
+      <div>
+        <div class="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+          {{ paper.courseCode || 'Unknown code' }}
+        </div>
+        <div class="text-sm font-medium text-zinc-900 line-clamp-2">
+          {{ paper.courseName || paper.title }}
+        </div>
+      </div>
+    </div>
+
+    <span
+      class="rounded-full px-2 py-0.5 text-[10px] font-medium"
+      [ngClass]="{
+        'bg-emerald-100 text-emerald-700': paper.status === 'published',
+        'bg-amber-100 text-amber-700': paper.status === 'draft'
+      }"
+    >
+      {{ paper.status | titlecase }}
+    </span>
+  </div>
+
+  <!-- Middle: date/year -->
+  <div class="mb-3 text-xs text-zinc-500">
+    @if(paper.examYear || paper.examDate){
+    <span>
+      {{ paper.examDate || paper.examYear }}
+    </span>
+    } @if(paper.examDate && paper.examYear && paper.examYear !== paper.examDate){
+    <span> · {{ paper.examYear }} </span>
+    }
+  </div>
+
+  <!-- Bottom: owner -->
+  <div class="mt-auto flex items-center gap-2 pt-2 border-t border-zinc-100">
+    <div class="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-zinc-200">
+      @if(paper.ownerPhotoURL){
+      <img [src]="paper.ownerPhotoURL!" alt="Owner avatar" class="h-full w-full object-cover" />
+      }@else {
+      <span class="text-[10px] font-semibold text-zinc-700">
+        {{ paper.ownerName ? paper.ownerName[0] : '?' }}
+      </span>
+      }
+    </div>
+    <div class="flex flex-col">
+      <span class="text-xs font-medium text-zinc-800">
+        {{ paper.ownerName || 'Unknown user' }}
+      </span>
+      <span class="text-[10px] text-zinc-400">Owner</span>
+    </div>
+  </div>
+</button>
