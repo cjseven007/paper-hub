@@ -1,14 +1,15 @@
 import { Component, inject, Input } from '@angular/core';
 import { Router } from '@angular/router';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-import { AuthService } from '../auth/auth.service';
+import { AuthService } from '../../auth/auth.service';
 import { AsyncPipe } from '@angular/common';
 import { LucideAngularModule } from 'lucide-angular';
 import { toSignal } from '@angular/core/rxjs-interop';
 
-type LucideIconName = 'house' | 'app-window' | 'settings' | 'university';
+type LucideIconName = 'house' | 'app-window' | 'settings' | 'university' | 'book-open-text';
 
 type NavItem = {
+  short_label:string;
   label: string;
   path: string;
   icon: LucideIconName;
@@ -30,9 +31,10 @@ export class SidebarComponent {
   @Input() isAdmin = false;   // <-- comes from AppComponent now
 
   nav: NavItem[] = [
-    { label: 'Home',         path: '/home',      icon: 'house' },
-    { label: 'My Workspace', path: '/workspace', icon: 'app-window' },
-    { label: 'Settings',     path: '/settings',  icon: 'settings' },
+    { short_label: 'Home', label: 'Home',         path: '/home',      icon: 'house' },
+    { short_label: 'Workspace',label: 'My Workspace', path: '/workspace', icon: 'app-window' },
+    { short_label: 'Contribute',label: 'Contribute Paper', path: '/contribute-paper', icon: 'book-open-text' },
+    // { label: 'Settings',     path: '/settings',  icon: 'settings' },
   ];
 
   showProfileMenu = false;

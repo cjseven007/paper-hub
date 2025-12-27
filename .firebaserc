@@ -1,0 +1,8 @@
+{
+  "projects": {
+    "staging-paperhub": "paperhub-c66ab",
+    "default": "paperhub-c66ab"
+  },
+  "targets": {},
+  "etags": {}
+}

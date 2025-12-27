@@ -1,6 +1,6 @@
 import { Component, computed, signal, inject } from '@angular/core';
 import { RouterOutlet, Router, RouterLink } from '@angular/router';
-import { SidebarComponent } from './sidebar-component/sidebar-component';
+import { SidebarComponent } from './components/sidebar-component/sidebar-component';
 import { AuthService } from './auth/auth.service';
 import { toSignal } from '@angular/core/rxjs-interop';
 
