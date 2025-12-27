@@ -12,7 +12,9 @@ import {
   collectionData,
   serverTimestamp,
   getDoc,
+  limit,
 } from '@angular/fire/firestore';
+
 import { Observable } from 'rxjs';
 import { ParsedQuestion } from './paper-parser.service';
 import { University } from './university.service';
@@ -213,4 +215,14 @@ export class PaperService {
       ownerPhotoURL ?? null
     );
   }
+  getPublishedPapers(limitCount = 12): Observable<PaperDoc[]> {
+  const q = query(
+    this.papersCol,
+    where('status', '==', 'published'),
+    orderBy('createdAt', 'desc'),
+    limit(limitCount)
+  );
+
+  return collectionData(q, { idField: 'id' }) as Observable<PaperDoc[]>;
+}
 }
