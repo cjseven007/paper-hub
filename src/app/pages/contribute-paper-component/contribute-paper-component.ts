@@ -23,6 +23,16 @@ export class ContributePaperComponent {
   private paperService = inject(PaperService);
   private universityService = inject(UniversityService);
 
+  readonly isFormValid = computed(() => {
+    return (
+      this.courseCode()?.trim() &&
+      this.courseName()?.trim() &&
+      this.examDate() &&
+      this.examYear()?.toString().length === 4 &&
+      this.selectedUniversityId() !== null
+    );
+  });
+
   // zoneless-friendly current user
   private userSig = toSignal(this.auth.user$, { initialValue: null });
   private papersSub: Subscription | null = null;

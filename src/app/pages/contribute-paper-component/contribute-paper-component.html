@@ -142,6 +142,8 @@
               type="text"
               [ngModel]="courseCode()"
               (ngModelChange)="courseCode.set($event)"
+              [class.border-red-500]="!courseCode().trim()"
+              [class.border-zinc-200]="courseCode().trim()"
               class="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900"
             />
           </div>
@@ -153,6 +155,8 @@
               type="text"
               [ngModel]="courseName()"
               (ngModelChange)="courseName.set($event)"
+              [class.border-red-500]="!courseName().trim()"
+              [class.border-zinc-200]="courseName().trim()"
               class="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900"
             />
           </div>
@@ -160,14 +164,16 @@
           <!-- Exam date + year -->
           <div class="flex gap-2">
             <div class="flex-1">
-              <label class="mb-1 block text-xs font-medium text-zinc-700">Exam date</label>
-              <input
-                type="text"
-                placeholder="YYYY-MM-DD"
-                [ngModel]="examDate()"
-                (ngModelChange)="examDate.set($event)"
-                class="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900"
-              />
+              <div class="flex-1">
+                <label class="mb-1 block text-xs font-medium text-zinc-700">Exam date</label>
+                <input
+                  type="date"
+                  [ngModel]="examDate()"
+                  (ngModelChange)="examDate.set($event)"
+                  class="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900"
+                  [class.border-red-500]="!examDate()"
+                />
+              </div>
             </div>
             <div class="w-20">
               <label class="mb-1 block text-xs font-medium text-zinc-700">Year</label>
@@ -176,6 +182,8 @@
                 maxlength="4"
                 [ngModel]="examYear()"
                 (ngModelChange)="examYear.set($event)"
+                [class.border-red-500]="!examYear().trim()"
+                [class.border-zinc-200]="examYear().trim()"
                 class="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900"
               />
             </div>
@@ -268,7 +276,7 @@
         <button
           type="button"
           (click)="savePaper('draft')"
-          [disabled]="saving() || !selectedUniversityId()"
+          [disabled]="saving() || !isFormValid()"
           class="rounded-lg border border-zinc-200 px-4 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {{ saving() ? 'Saving…' : 'Save as draft' }}
@@ -276,7 +284,7 @@
         <button
           type="button"
           (click)="savePaper('published')"
-          [disabled]="saving() || !selectedUniversityId()"
+          [disabled]="saving() || !isFormValid()"
           class="rounded-lg bg-zinc-900 px-4 py-2 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
         >
           {{ saving() ? 'Publishing…' : 'Publish' }}
