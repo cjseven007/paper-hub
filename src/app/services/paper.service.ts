@@ -16,6 +16,7 @@ import {
   startAt,
   endAt,
   deleteDoc,
+  getDocs
 } from '@angular/fire/firestore';
 import { Observable, combineLatest, map } from 'rxjs';
 
@@ -286,4 +287,15 @@ export class PaperService {
             })
         );
         }
+    async userHasAnswerForPaper(ownerUid: string, paperId: string): Promise<boolean> {
+    const qref = query(
+        this.answersCol,
+        where('ownerUid', '==', ownerUid),
+        where('paperId', '==', paperId),
+        limit(1)
+    );
+
+    const snap = await getDocs(qref);
+    return !snap.empty;
+    }
 }
