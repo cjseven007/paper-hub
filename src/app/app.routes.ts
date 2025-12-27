@@ -12,6 +12,7 @@ import { authGuard } from './auth/auth.guard';
 import { profileGuard } from './auth/profile.guard';
 import { adminGuard } from './auth/admin.guard';
 import { ManageUniversitiesComponent } from '../app/admin/manage-universities-component/manage-universities-component';
+import { WorkspaceAnswerDetailComponent } from './pages/workspace-answer-detail-component/workspace-answer-detail-component';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -29,7 +30,10 @@ export const routes: Routes = [
   },
   {
     path: 'workspace',
-    component: WorkspaceComponent,
+    children: [
+    { path: '', component: WorkspaceComponent },
+    { path: ':answerId', component: WorkspaceAnswerDetailComponent },
+  ],
     canActivate: [authGuard, profileGuard],
   },
   {

@@ -284,11 +284,12 @@ export class ContributePaperComponent {
     this.error.set(null);
 
     try {
-      await this.paperService.createAnswerDoc(
-        paper,
-        user.uid,
-        this.userName()
-      );
+      await this.paperService.savePaperToWorkspace(paper, {
+        ownerUid: user.uid,
+        ownerName: this.userName(),
+        ownerPhotoURL: this.userPhotoURL(),
+      });
+
       this.showPreviewDialog.set(false);
       this.activePreviewPaper.set(null);
     } catch (e: any) {
