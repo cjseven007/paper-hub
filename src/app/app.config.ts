@@ -13,12 +13,15 @@ import {
   House,
   AppWindow,
   Settings,
+  BookOpenText,
   University,
   User,
 } from 'lucide-angular';
+import { provideHttpClient } from '@angular/common/http';
 
 export const appConfig: ApplicationConfig = {
   providers: [
+    provideHttpClient(),
     provideBrowserGlobalErrorListeners(),
     provideZonelessChangeDetection(),
     provideRouter(routes), provideClientHydration(withEventReplay()),
@@ -31,6 +34,7 @@ export const appConfig: ApplicationConfig = {
         House,
         AppWindow,
         Settings,
+        BookOpenText,
         University,
         User,
       })

@@ -6,7 +6,7 @@ import { AuthService } from '../auth.service';
 import {
   UniversityService,
   University,
-} from '../../university/university.service';
+} from '../../services/university.service';
 import { Observable } from 'rxjs';
 
 @Component({

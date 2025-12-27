@@ -6,7 +6,7 @@ import { AuthService, UserProfile } from '../auth/auth.service';
 import {
   UniversityService,
   University,
-} from '../university/university.service';
+} from '../services/university.service';
 import { toSignal } from '@angular/core/rxjs-interop';
 
 @Component({

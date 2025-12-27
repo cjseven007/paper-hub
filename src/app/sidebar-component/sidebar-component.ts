@@ -6,7 +6,7 @@ import { AsyncPipe } from '@angular/common';
 import { LucideAngularModule } from 'lucide-angular';
 import { toSignal } from '@angular/core/rxjs-interop';
 
-type LucideIconName = 'house' | 'app-window' | 'settings' | 'university';
+type LucideIconName = 'house' | 'app-window' | 'settings' | 'university' | 'book-open-text';
 
 type NavItem = {
   label: string;
@@ -32,7 +32,8 @@ export class SidebarComponent {
   nav: NavItem[] = [
     { label: 'Home',         path: '/home',      icon: 'house' },
     { label: 'My Workspace', path: '/workspace', icon: 'app-window' },
-    { label: 'Settings',     path: '/settings',  icon: 'settings' },
+    { label: 'Contribute Paper', path: '/contribute-paper', icon: 'book-open-text' },
+    // { label: 'Settings',     path: '/settings',  icon: 'settings' },
   ];
 
   showProfileMenu = false;

@@ -4,6 +4,7 @@ import { HomeComponent } from './home-component/home-component';
 import { WorkspaceComponent } from './workspace-component/workspace-component';
 import { ProfileComponent } from './profile-component/profile-component';
 import { SettingsComponent } from './settings-component/settings-component';
+import { ContributePaperComponent } from './contribute-paper-component/contribute-paper-component';
 
 import { LoginComponent } from './auth/login-component/login-component';
 import { CompleteProfileComponent } from './auth/complete-profile-component/complete-profile-component';
@@ -32,15 +33,20 @@ export const routes: Routes = [
     canActivate: [authGuard, profileGuard],
   },
   {
+    path:'contribute-paper',
+    component: ContributePaperComponent,
+    canActivate: [authGuard, profileGuard],
+  },
+  {
     path: 'profile',
     component: ProfileComponent,
     canActivate: [authGuard, profileGuard],
   },
-  {
-    path: 'settings',
-    component: SettingsComponent,
-    canActivate: [authGuard, profileGuard],
-  },
+  // {
+  //   path: 'settings',
+  //   component: SettingsComponent,
+  //   canActivate: [authGuard, profileGuard],
+  // },
   {
     path: 'manage-universities',
     component: ManageUniversitiesComponent,
