@@ -8,9 +8,7 @@
     <div class="flex items-center gap-2">
       <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-100 text-zinc-700">
         <!-- document icon -->
-        <svg viewBox="0 0 24 24" class="h-5 w-5">
-          <path fill="currentColor" d="M6 2h7l5 5v15H6V2Zm7 1.5V8h4.5L13 3.5Z" />
-        </svg>
+        <lucide-icon name="notebook-pen"></lucide-icon>
       </div>
       <div>
         <div class="text-xs font-semibold uppercase tracking-wide text-zinc-500">
@@ -30,11 +28,18 @@
   <!-- Middle: date/year -->
   <div class="mb-3 text-xs text-zinc-500">
     @if (answer.examYear || answer.examDate) {
-    <span>
-      {{ answer.examDate || answer.examYear }}
-    </span>
+    <div>
+      <span class="font-semibold">Exam Date: </span>
+      <span>{{ (answer.examDate | date : 'dd MMM yyyy') || answer.examYear }}</span>
+    </div>
     } @if (answer.examDate && answer.examYear && answer.examYear !== answer.examDate) {
-    <span> · {{ answer.examYear }} </span>
+    <div>
+      <span class="font-semibold">Exam Year: </span> <span>{{ answer.examYear }}</span>
+    </div>
+    }@if (answer.universityName) {
+    <div>
+      <span class="font-semibold">University: </span> <span>{{ answer.universityName }}</span>
+    </div>
     }
   </div>
 

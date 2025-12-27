@@ -8,9 +8,7 @@
     <div class="flex items-center gap-2">
       <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-100 text-zinc-700">
         <!-- document icon -->
-        <svg viewBox="0 0 24 24" class="h-5 w-5">
-          <path fill="currentColor" d="M6 2h7l5 5v15H6V2Zm7 1.5V8h4.5L13 3.5Z" />
-        </svg>
+        <lucide-icon name="file"></lucide-icon>
       </div>
       <div>
         <div class="text-xs font-semibold uppercase tracking-wide text-zinc-500">
@@ -35,12 +33,19 @@
 
   <!-- Middle: date/year -->
   <div class="mb-3 text-xs text-zinc-500">
-    @if(paper.examYear || paper.examDate){
-    <span>
-      {{ paper.examDate || paper.examYear }}
-    </span>
-    } @if(paper.examDate && paper.examYear && paper.examYear !== paper.examDate){
-    <span> · {{ paper.examYear }} </span>
+    @if (paper.examYear || paper.examDate) {
+    <div>
+      <span class="font-semibold">Exam Date: </span>
+      <span>{{ (paper.examDate | date : 'dd MMM yyyy') || paper.examYear }}</span>
+    </div>
+    } @if (paper.examDate && paper.examYear && paper.examYear !== paper.examDate) {
+    <div>
+      <span class="font-semibold">Exam Year: </span> <span>{{ paper.examYear }}</span>
+    </div>
+    }@if (paper.universityName) {
+    <div>
+      <span class="font-semibold">University: </span> <span>{{ paper.universityName }}</span>
+    </div>
     }
   </div>
 

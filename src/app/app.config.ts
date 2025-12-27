@@ -16,6 +16,8 @@ import {
   BookOpenText,
   University,
   User,
+  File,
+  NotebookPen
 } from 'lucide-angular';
 import { provideHttpClient } from '@angular/common/http';
 
@@ -37,6 +39,8 @@ export const appConfig: ApplicationConfig = {
         BookOpenText,
         University,
         User,
+        File,
+        NotebookPen
       })
     ),
   ]

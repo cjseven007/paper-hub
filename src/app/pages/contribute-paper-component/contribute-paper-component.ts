@@ -9,7 +9,7 @@ import { AuthService } from '../../auth/auth.service';
 import { PaperService, PaperDoc, PaperStatus } from '../../services/paper.service';
 
 import { PaperCardComponent } from '../../components/paper-card-component/paper-card-component';
-
+import { UniversityService, University } from '../../services/university.service'; 
 @Component({
   selector: 'app-contribute-paper-component',
   standalone: true,
@@ -21,6 +21,7 @@ export class ContributePaperComponent {
   private parser = inject(PaperParserService);
   private auth = inject(AuthService);
   private paperService = inject(PaperService);
+  private universityService = inject(UniversityService);
 
   // zoneless-friendly current user
   private userSig = toSignal(this.auth.user$, { initialValue: null });
@@ -40,6 +41,11 @@ export class ContributePaperComponent {
   parsing = signal(false);
   saving = signal(false);
   error = signal<string | null>(null);
+
+  // University
+  universities = signal<University[]>([]);
+  universitiesLoading = signal(false);
+  selectedUniversityId = signal<string | null>(null);
 
   // modals
   showUploadDialog = signal(false);
@@ -89,6 +95,19 @@ export class ContributePaperComponent {
           this.papersLoading.set(false);   //  also stop on error
         },
       });
+    });
+
+    // load universities once
+    this.universitiesLoading.set(true);
+    this.universityService.getUniversities().subscribe({
+      next: (unis) => {
+        this.universities.set(unis);
+        this.universitiesLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load universities', err);
+        this.universitiesLoading.set(false);
+      },
     });
   }
 
@@ -159,6 +178,7 @@ export class ContributePaperComponent {
       );
 
       this.questions.set(parsed.questions ?? []);
+      this.selectedUniversityId.set(null);
       this.selectedQuestionIndex.set(0);
 
       this.editMode.set('create');
@@ -197,8 +217,12 @@ export class ContributePaperComponent {
     this.examYear.set(paper.examYear);
     this.questions.set(paper.questions ?? []);
     this.selectedQuestionIndex.set(0);
+    this.selectedUniversityId.set(paper.universityId ?? null);
 
     this.showEditDialog.set(true);
+  }
+  onUniversityChange(id: string | null) {
+    this.selectedUniversityId.set(id);
   }
 
   activePreviewPaper = signal<PaperDoc | null>(null);
@@ -248,6 +272,9 @@ export class ContributePaperComponent {
     this.saving.set(true);
     this.error.set(null);
 
+    const uniId = this.selectedUniversityId();
+    const uni = this.universities().find((u) => u.id === uniId) || null;
+
     const payload = {
       title: this.paperTitle(),
       courseCode: this.courseCode(),
@@ -259,6 +286,10 @@ export class ContributePaperComponent {
       ownerUid: user.uid,
       ownerName: this.userName(),
       ownerPhotoURL: this.userPhotoURL(),
+
+      // 🔹 NEW
+      universityId: uniId ?? null,
+      universityName: uni?.name ?? null,
     };
 
     try {
@@ -269,7 +300,6 @@ export class ContributePaperComponent {
         await this.paperService.createPaper(payload);
       }
 
-      // close edit modal after saving
       this.showEditDialog.set(false);
       this.activePaperId.set(null);
       this.editMode.set('create');
@@ -280,6 +310,7 @@ export class ContributePaperComponent {
       this.saving.set(false);
     }
   }
+
 
   // Save questions to workspace – creates answer doc
   async saveQuestionsToWorkspace() {
