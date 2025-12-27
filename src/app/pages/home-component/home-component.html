@@ -76,7 +76,7 @@
 
     <!-- Grid of published papers -->
     <section class="relative mt-2 flex-1">
-      @if (!loading() && filteredPapers().length === 0) {
+      @if (!loading() && papers().length === 0) {
       <div
         class="flex h-60 flex-col items-center justify-center rounded-xl border border-dashed border-zinc-200 bg-zinc-50 text-center text-sm text-zinc-500"
       >
@@ -90,7 +90,7 @@
       </div>
       } @else {
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        @for (p of filteredPapers(); track p.id) {
+        @for (p of papers(); track p.id) {
         <app-paper-card [paper]="p" (paperClick)="openPaperPreview(p)"></app-paper-card>
         }
       </div>

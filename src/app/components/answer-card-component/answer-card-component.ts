@@ -12,9 +12,21 @@ import { LucideAngularModule } from 'lucide-angular';
 })
 export class AnswerCardComponent {
   @Input({ required: true }) answer!: AnswerDoc;
-  @Output() cardClick = new EventEmitter<void>();
+  @Input() deleting = false;
 
-  onClick() {
-    this.cardClick.emit();
+  @Output() cardClick = new EventEmitter<void>();
+  @Output() deleteClick = new EventEmitter<void>();
+
+  onCardClick() {
+    if (!this.deleting) {
+      this.cardClick.emit();
+    }
+  }
+
+  onDeleteClick(event: MouseEvent) {
+    event.stopPropagation(); // don't trigger cardClick
+    if (!this.deleting) {
+      this.deleteClick.emit();
+    }
   }
 }

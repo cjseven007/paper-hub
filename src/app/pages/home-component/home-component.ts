@@ -1,8 +1,9 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { Subscription } from 'rxjs';
 
 import { PaperService, PaperDoc } from '../../services/paper.service';
 import { PaperCardComponent } from '../../components/paper-card-component/paper-card-component';
@@ -19,56 +20,52 @@ export class HomeComponent {
  private paperService = inject(PaperService);
   private auth = inject(AuthService);
 
-  // auth
   private userSig = toSignal(this.auth.user$, { initialValue: null });
   userUid = computed(() => this.userSig()?.uid ?? null);
   userName = computed(() => this.userSig()?.displayName ?? null);
   userPhotoURL = computed(() => this.userSig()?.photoURL ?? null);
 
-  // data
   loading = signal(true);
   error = signal<string | null>(null);
-  allPapers = signal<PaperDoc[]>([]); // published only
 
-  // search
+  // papers currently shown (result of search or default)
+  papers = signal<PaperDoc[]>([]);
   searchTerm = signal('');
 
-  filteredPapers = computed(() => {
-    const term = this.searchTerm().toLowerCase().trim();
-    const papers = this.allPapers();
+  private papersSub: Subscription | null = null;
 
-    if (!term) return papers;
-
-    return papers.filter((p) => {
-      const courseCode = (p.courseCode || '').toLowerCase();
-      const courseName = (p.courseName || '').toLowerCase();
-      const universityName = (p.universityName || '').toLowerCase();
-
-      return (
-        courseCode.includes(term) ||
-        courseName.includes(term) ||
-        universityName.includes(term)
-      );
-    });
-  });
-
-  // preview modal state
+  // preview modal
   showPreviewDialog = signal(false);
   activePaper = signal<PaperDoc | null>(null);
   savingToWorkspace = signal(false);
   previewError = signal<string | null>(null);
 
   constructor() {
-    this.loadPublishedPapers();
+    // react to search term changes and re-subscribe
+    effect(() => {
+      const term = this.searchTerm();
+      this.subscribeToPapersForTerm(term);
+    });
   }
 
-  private loadPublishedPapers() {
+  private subscribeToPapersForTerm(term: string) {
+    if (this.papersSub) {
+      this.papersSub.unsubscribe();
+      this.papersSub = null;
+    }
+
     this.loading.set(true);
     this.error.set(null);
 
-    this.paperService.getPublishedPapers(12).subscribe({
+    const trimmed = term.trim();
+
+    const source$ = trimmed
+      ? this.paperService.searchPublishedPapers(trimmed, 12)
+      : this.paperService.getPublishedPapers(12);
+
+    this.papersSub = source$.subscribe({
       next: (papers) => {
-        this.allPapers.set(papers);
+        this.papers.set(papers);
         this.loading.set(false);
       },
       error: (err) => {
@@ -83,7 +80,6 @@ export class HomeComponent {
     this.searchTerm.set(term);
   }
 
-  // when a paper card is clicked
   openPaperPreview(paper: PaperDoc) {
     this.activePaper.set(paper);
     this.previewError.set(null);
