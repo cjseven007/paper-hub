@@ -84,7 +84,9 @@
       </div>
 
       <!-- Active question -->
-      <div class="flex-1 min-h-0 overflow-y-auto rounded-xl border border-zinc-200 bg-white p-4">
+      <div
+        class="flex-1 min-h-0 md:mb-0 mb-15 overflow-y-auto rounded-xl border border-zinc-200 bg-white p-4"
+      >
         @for (q of paper()!.questions; let i = $index; track q.question_number) { @if
         (selectedQuestionIndex() === i) {
         <div class="space-y-4">
