@@ -133,7 +133,9 @@
 
       <!-- Metadata -->
       <div class="flex-1 min-h-0 overflow-y-auto space-y-3 pr-1">
-        <div class="mb-4 grid gap-3 md:grid-cols-[1fr,1fr,1fr,auto] md:items-end">
+        <!-- Metadata -->
+        <div class="mb-4 grid gap-3 md:grid-cols-[1fr,1fr,1fr,1fr] md:items-end">
+          <!-- Course code -->
           <div>
             <label class="mb-1 block text-xs font-medium text-zinc-700">Course code</label>
             <input
@@ -143,6 +145,8 @@
               class="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900"
             />
           </div>
+
+          <!-- Course name -->
           <div>
             <label class="mb-1 block text-xs font-medium text-zinc-700">Course name</label>
             <input
@@ -152,6 +156,8 @@
               class="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900"
             />
           </div>
+
+          <!-- Exam date + year -->
           <div class="flex gap-2">
             <div class="flex-1">
               <label class="mb-1 block text-xs font-medium text-zinc-700">Exam date</label>
@@ -174,14 +180,20 @@
               />
             </div>
           </div>
+
+          <!-- University dropdown -->
           <div>
-            <label class="mb-1 block text-xs font-medium text-zinc-700">Paper title</label>
-            <input
-              type="text"
-              [ngModel]="paperTitle()"
-              (ngModelChange)="paperTitle.set($event)"
-              class="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900"
-            />
+            <label class="mb-1 block text-xs font-medium text-zinc-700">University</label>
+            <select
+              [ngModel]="selectedUniversityId()"
+              (ngModelChange)="onUniversityChange($event)"
+              class="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900"
+            >
+              <option [ngValue]="null">Select university</option>
+              @for (u of universities(); track u.id) {
+              <option [ngValue]="u.id">{{ u.name }}</option>
+              }
+            </select>
           </div>
         </div>
 

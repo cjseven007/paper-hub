@@ -15,6 +15,7 @@ import {
 } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
 import { ParsedQuestion } from './paper-parser.service';
+import { University } from './university.service';
 
 export type PaperStatus = 'draft' | 'published';
 
@@ -32,6 +33,9 @@ export interface PaperDoc {
   questions: ParsedQuestion[];
   createdAt?: any;
   updatedAt?: any;
+  // NEW
+  universityId?: string | null;
+  universityName?: string | null;
 }
 
 export interface CreatePaperPayload {
@@ -45,6 +49,8 @@ export interface CreatePaperPayload {
   ownerName?: string | null;
   ownerPhotoURL?: string | null;
   questions: ParsedQuestion[];
+  universityId?: string | null;
+  universityName?: string | null;
 }
 
 // ANSWER TYPES
@@ -75,6 +81,9 @@ export interface AnswerDoc {
   createdAt?: any;
   updatedAt?: any;
   answers: AnswerQuestion[];
+
+  universityId?: string | null;
+  universityName?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -175,12 +184,15 @@ export class PaperService {
       ownerName: ownerName ?? null,
       ownerPhotoURL: ownerPhotoURL ?? null,
 
-      // 🔹 exam metadata copied from paper
+      // exam metadata copied from paper
       title: paper.title,
       courseCode: paper.courseCode,
       courseName: paper.courseName,
       examDate: paper.examDate,
       examYear: paper.examYear,
+
+      universityId: paper.universityId ?? null,
+      universityName: paper.universityName ?? null,
 
       createdAt: now,
       updatedAt: now,
