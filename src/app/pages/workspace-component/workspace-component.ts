@@ -1,4 +1,5 @@
 import { Component, effect, inject, signal, computed } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -26,20 +27,36 @@ export class WorkspaceComponent {
 
   answerDocs = signal<AnswerDoc[]>([]);
   error = signal<string | null>(null);
+  answersLoading = signal(true);  // 👈 NEW
+
+  private answersSub: Subscription | null = null;
 
   constructor() {
     effect(() => {
       const user = this.userSig();
+
+      if (this.answersSub) {
+        this.answersSub.unsubscribe();
+        this.answersSub = null;
+      }
+
       if (!user?.uid) {
         this.answerDocs.set([]);
+        this.answersLoading.set(false);
         return;
       }
 
-      this.paperService.getUserAnswerDocs(user.uid).subscribe({
-        next: (answers) => {this.answerDocs.set(answers);},
+      this.answersLoading.set(true);
+
+      this.answersSub = this.paperService.getUserAnswerDocs(user.uid).subscribe({
+        next: (answers) => {
+          this.answerDocs.set(answers);
+          this.answersLoading.set(false);
+        },
         error: (err) => {
           console.error('Error loading workspace answers', err);
           this.error.set('Failed to load your workspace.');
+          this.answersLoading.set(false);
         },
       });
     });

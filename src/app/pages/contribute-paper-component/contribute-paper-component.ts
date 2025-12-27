@@ -33,6 +33,7 @@ export class ContributePaperComponent {
 
   // Papers list
   userPapers = signal<PaperDoc[]>([]);
+  papersLoading = signal(true);
 
   // UI state
   selectedFile = signal<File | null>(null);
@@ -60,27 +61,34 @@ export class ContributePaperComponent {
   selectedQuestionIndex = signal(0);
 
   constructor() {
-    // React whenever the auth user changes
     effect(() => {
       const user = this.userSig();
 
-      // clean up previous Firestore subscription
+      // cleanup old sub
       if (this.papersSub) {
         this.papersSub.unsubscribe();
         this.papersSub = null;
       }
 
-      if (user?.uid) {
-        this.papersSub = this.paperService.getUserPapers(user.uid).subscribe({
-          next: (papers) => this.userPapers.set(papers),
-          error: (err) => {
-            console.error('Error loading papers', err);
-            this.error.set('Failed to load your papers.');
-          },
-        });
-      } else {
+      if (!user?.uid) {
         this.userPapers.set([]);
+        this.papersLoading.set(false);
+        return;
       }
+
+      this.papersLoading.set(true);  //  start loading
+
+      this.papersSub = this.paperService.getUserPapers(user.uid).subscribe({
+        next: (papers) => {
+          this.userPapers.set(papers);
+          this.papersLoading.set(false);   //  stop loading on first data
+        },
+        error: (err) => {
+          console.error('Error loading papers', err);
+          this.error.set('Failed to load your papers.');
+          this.papersLoading.set(false);   //  also stop on error
+        },
+      });
     });
   }
 
