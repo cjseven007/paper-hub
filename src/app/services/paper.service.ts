@@ -222,7 +222,7 @@ export class PaperService {
       ownerPhotoURL ?? null
     );
   }
-  getPublishedPapers(limitCount = 12): Observable<PaperDoc[]> {
+  getPublishedPapers(limitCount = 100): Observable<PaperDoc[]> {
     const q = query(
         this.papersCol,
         where('status', '==', 'published'),

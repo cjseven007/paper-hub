@@ -1,9 +1,8 @@
-import { Component, inject, signal, computed, effect } from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { Subscription } from 'rxjs';
 
 import { PaperService, PaperDoc } from '../../services/paper.service';
 import { PaperCardComponent } from '../../components/paper-card-component/paper-card-component';
@@ -20,52 +19,62 @@ export class HomeComponent {
  private paperService = inject(PaperService);
   private auth = inject(AuthService);
 
+  // auth
   private userSig = toSignal(this.auth.user$, { initialValue: null });
   userUid = computed(() => this.userSig()?.uid ?? null);
   userName = computed(() => this.userSig()?.displayName ?? null);
   userPhotoURL = computed(() => this.userSig()?.photoURL ?? null);
 
+  // data
   loading = signal(true);
   error = signal<string | null>(null);
+  allPapers = signal<PaperDoc[]>([]);   // all published (up to limit)
 
-  // papers currently shown (result of search or default)
-  papers = signal<PaperDoc[]>([]);
+  // search
   searchTerm = signal('');
 
-  private papersSub: Subscription | null = null;
+  // filter client-side
+  filteredPapers = computed(() => {
+    const term = this.searchTerm().toLowerCase().trim();
+    const papers = this.allPapers();
 
-  // preview modal
+    if (!term) {
+      // show up to 12 in the grid
+      return papers.slice(0, 12);
+    }
+
+    const filtered = papers.filter((p) => {
+      const courseCode = (p.courseCode || '').toLowerCase();
+      const courseName = (p.courseName || '').toLowerCase();
+      const universityName = (p.universityName || '').toLowerCase();
+
+      return (
+        courseCode.includes(term) ||
+        courseName.includes(term) ||
+        universityName.includes(term)
+      );
+    });
+
+    return filtered.slice(0, 12); // still cap at 3x4
+  });
+
+  // preview modal state
   showPreviewDialog = signal(false);
   activePaper = signal<PaperDoc | null>(null);
   savingToWorkspace = signal(false);
   previewError = signal<string | null>(null);
 
   constructor() {
-    // react to search term changes and re-subscribe
-    effect(() => {
-      const term = this.searchTerm();
-      this.subscribeToPapersForTerm(term);
-    });
+    this.loadPublishedPapers();
   }
 
-  private subscribeToPapersForTerm(term: string) {
-    if (this.papersSub) {
-      this.papersSub.unsubscribe();
-      this.papersSub = null;
-    }
-
+  private loadPublishedPapers() {
     this.loading.set(true);
     this.error.set(null);
 
-    const trimmed = term.trim();
-
-    const source$ = trimmed
-      ? this.paperService.searchPublishedPapers(trimmed, 12)
-      : this.paperService.getPublishedPapers(12);
-
-    this.papersSub = source$.subscribe({
+    this.paperService.getPublishedPapers(100).subscribe({
       next: (papers) => {
-        this.papers.set(papers);
+        this.allPapers.set(papers);
         this.loading.set(false);
       },
       error: (err) => {
