@@ -7,7 +7,7 @@
   </div>
   }@else {
   <!-- Header -->
-  <div class="flex items-center justify-between">
+  <div class="flex items-center justify-between gap-3">
     <div>
       <h1 class="text-xl font-semibold text-zinc-900">Contribute paper</h1>
       <p class="text-sm text-zinc-500">
@@ -16,17 +16,27 @@
       </p>
     </div>
 
-    <button
-      type="button"
-      (click)="openUploadDialog()"
-      class="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
-    >
-      + Add paper
-    </button>
+    <div class="flex items-center gap-3">
+      <!-- Circular-ish quota pill -->
+      <div
+        class="flex h-8 items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 text-xs text-zinc-600"
+      >
+        <span class="mr-1 text-[10px] font-semibold uppercase tracking-wide"> Daily quota </span>
+        <span class="font-semibold text-zinc-900"> {{ remainingQuota() }}/{{ dailyLimit() }} </span>
+      </div>
+
+      <button
+        type="button"
+        (click)="openUploadDialog()"
+        class="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+      >
+        + Add paper
+      </button>
+    </div>
   </div>
 
   <!-- Grid of user's papers -->
-  <div class="flex-1 rounded-xl border border-zinc-200 bg-zinc-50 p-4 mb-5">
+  <div class="flex-1 rounded-xl border border-zinc-200 bg-zinc-50 p-4 md:mb-5 mb-15">
     @if (userPapers().length === 0) {
     <div class="flex h-full flex-col items-center justify-center text-center text-sm text-zinc-500">
       <p>No papers yet.</p>
@@ -80,7 +90,7 @@
             type="file"
             accept="application/pdf"
             (change)="onFileChange($event)"
-            class="block w-full text-sm text-zinc-700"
+            class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-zinc-200 file:text-zinc-900 hover:file:bg-zinc-100"
           />
           <p class="mt-1 text-xs text-zinc-400">
             Upload a single PDF file. It will be sent to Gemini for parsing, not stored permanently.
@@ -369,4 +379,27 @@
     </div>
   </div>
   } }
+
+  <!-- Response modal (quota / error) -->
+  @if (showResponseDialog()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+    <div
+      class="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-5 shadow-xl text-center"
+    >
+      <h2 class="mb-2 text-sm font-semibold text-zinc-900">
+        {{ responseType() === 'quota' ? 'Daily limit reached' : 'Parsing failed' }}
+      </h2>
+      <p class="mb-4 text-xs text-zinc-600">
+        {{ responseMessage() }}
+      </p>
+      <button
+        type="button"
+        (click)="closeResponseDialog()"
+        class="rounded-lg bg-zinc-900 px-4 py-2 text-xs font-medium text-white hover:bg-zinc-800"
+      >
+        OK
+      </button>
+    </div>
+  </div>
+  }
 </div>

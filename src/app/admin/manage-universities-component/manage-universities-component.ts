@@ -19,6 +19,17 @@ export interface University {
   courses: string[];
 }
 
+export interface AdminUser {
+  id: string; // Firestore doc id (uid)
+  uid?: string;
+  name?: string;
+  university?: string;
+  course?: string;
+  email?: string | null;
+  photoURL?: string | null;
+  userDailyLimit?: number;
+}
+
 @Component({
   selector: 'app-manage-universities-component',
   standalone: true,
@@ -29,6 +40,7 @@ export interface University {
 export class ManageUniversitiesComponent {
   private firestore = inject(Firestore);
 
+  // --------- UNIVERSITIES STREAM ----------
   private universities$ = collectionData(
     collection(this.firestore, 'universities'),
     { idField: 'id' }
@@ -38,7 +50,24 @@ export class ManageUniversitiesComponent {
     initialValue: [] as University[],
   });
 
-  // selection & editing state
+  // --------- USERS STREAM (for quotas) ----------
+  private users$ = collectionData(
+    collection(this.firestore, 'users'),
+    { idField: 'id' }
+  ) as Observable<AdminUser[]>;
+
+  usersSig = toSignal(this.users$, {
+    initialValue: [] as AdminUser[],
+  });
+
+  // --------- TAB STATE ----------
+  activeTab: 'universities' | 'limits' = 'universities';
+
+  setActiveTab(tab: 'universities' | 'limits') {
+    this.activeTab = tab;
+  }
+
+  // --------- UNIVERSITIES STATE ----------
   selectedUniversityId: string | null = null;
   editingCourses: string[] = [];
 
@@ -67,7 +96,20 @@ export class ManageUniversitiesComponent {
     return this.universities.find((u) => u.id === this.selectedUniversityId) ?? null;
   }
 
-  // ----------------- Selection -----------------
+  // --------- USERS / QUOTA STATE ----------
+  selectedUserId: string | null = null;
+  editingUserLimit: number | null = null;
+  isSavingUserLimit = false;
+
+  get users(): AdminUser[] {
+    return this.usersSig();
+  }
+
+  get selectedUser(): AdminUser | null {
+    return this.users.find((u) => u.id === this.selectedUserId) ?? null;
+  }
+
+  // ----------------- Selection (universities) -----------------
 
   selectUniversity(uni: University) {
     this.selectedUniversityId = uni.id;
@@ -202,5 +244,41 @@ export class ManageUniversitiesComponent {
     await updateDoc(ref, { courses: updated });
 
     this.closeDeleteCourseModal();
+  }
+
+  // ----------------- USER LIMITS TAB -----------------
+
+  selectUser(user: AdminUser) {
+    this.selectedUserId = user.id;
+    const limit =
+      typeof user.userDailyLimit === 'number' && user.userDailyLimit > 0
+        ? user.userDailyLimit
+        : 5;
+    this.editingUserLimit = limit;
+  }
+
+  onChangeUserLimit(value: any) {
+    if (value === null || value === '' || isNaN(Number(value))) {
+      this.editingUserLimit = null;
+    } else {
+      this.editingUserLimit = Number(value);
+    }
+  }
+
+  resetUserLimitToDefault() {
+    this.editingUserLimit = 5;
+  }
+
+  async saveUserLimit() {
+    if (!this.selectedUserId) return;
+    if (this.editingUserLimit == null || this.editingUserLimit <= 0) return;
+
+    this.isSavingUserLimit = true;
+    try {
+      const ref = doc(this.firestore, 'users', this.selectedUserId);
+      await updateDoc(ref, { userDailyLimit: this.editingUserLimit });
+    } finally {
+      this.isSavingUserLimit = false;
+    }
   }
 }

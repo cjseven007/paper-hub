@@ -47,7 +47,6 @@ export interface ParsedPaper {
 export class PaperParserService {
   private http = inject(HttpClient);
 
-  // TODO: put your deployed function URL here
   private endpoint =
     'https://us-central1-paperhub-c66ab.cloudfunctions.net/parseExamPaper';
 
@@ -57,7 +56,6 @@ export class PaperParserService {
       reader.onerror = () => reject(reader.error);
       reader.onload = () => {
         const result = reader.result as string;
-        // result like "data:application/pdf;base64,AAAA..."
         const base64 = result.split(',')[1] || result;
         resolve(base64);
       };
@@ -65,11 +63,12 @@ export class PaperParserService {
     });
   }
 
-  async parseExamPdf(file: File): Promise<ParsedPaper> {
+  async parseExamPdf(file: File, uid: string): Promise<ParsedPaper> { // <-- NEW PARAM
     const fileBase64 = await this.fileToBase64(file);
 
     const response$ = this.http.post<ParsedPaper>(this.endpoint, {
       fileBase64,
+      uid,
     });
 
     return await firstValueFrom(response$);
