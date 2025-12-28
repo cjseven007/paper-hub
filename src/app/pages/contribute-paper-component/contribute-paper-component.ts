@@ -10,6 +10,7 @@ import { PaperService, PaperDoc, PaperStatus } from '../../services/paper.servic
 
 import { PaperCardComponent } from '../../components/paper-card-component/paper-card-component';
 import { UniversityService, University } from '../../services/university.service';
+import { Firestore, doc, docData } from '@angular/fire/firestore';
 @Component({
   selector: 'app-contribute-paper-component',
   standalone: true,
@@ -22,6 +23,7 @@ export class ContributePaperComponent {
   private auth = inject(AuthService);
   private paperService = inject(PaperService);
   private universityService = inject(UniversityService);
+  private firestore = inject(Firestore); // NEW
 
   readonly isFormValid = computed(() => {
     return (
@@ -35,7 +37,19 @@ export class ContributePaperComponent {
 
   // zoneless-friendly current user
   private userSig = toSignal(this.auth.user$, { initialValue: null });
+  private profileSig = toSignal(this.auth.profile$, { initialValue: null }); // NEW
   private papersSub: Subscription | null = null;
+  private usageSub: Subscription | null = null; // NEW
+
+  // quota signals
+  dailyUsed = signal(0); // how many used today
+  dailyLimit = computed(() => this.profileSig()?.userDailyLimit ?? 5);
+  remainingQuota = computed(() => {
+    const limit = this.dailyLimit() || 0;
+    const used = this.dailyUsed();
+    const remaining = limit - used;
+    return remaining > 0 ? remaining : 0;
+  });
 
   // user info
   userUid = computed(() => this.userSig()?.uid ?? null);
@@ -82,6 +96,11 @@ export class ContributePaperComponent {
   alreadyInWorkspace = signal(false);
   previewError = signal<string | null>(null);
 
+  // response modal
+  showResponseDialog = signal(false);
+  responseMessage = signal<string | null>(null);
+  responseType = signal<'error' | 'quota'>('error');
+
   constructor() {
     effect(() => {
       const user = this.userSig();
@@ -110,6 +129,30 @@ export class ContributePaperComponent {
           this.error.set('Failed to load your papers.');
           this.papersLoading.set(false);
         },
+      });
+    });
+
+    // NEW: track daily usage in real time
+    effect(() => {
+      const user = this.userSig();
+
+      if (this.usageSub) {
+        this.usageSub.unsubscribe();
+        this.usageSub = null;
+      }
+
+      if (!user?.uid) {
+        this.dailyUsed.set(0);
+        return;
+      }
+
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const usageDocId = `${user.uid}_${todayStr}`;
+      const ref = doc(this.firestore, 'userUsage', usageDocId);
+
+      this.usageSub = docData(ref).subscribe((data: any) => {
+        const count = typeof data?.count === 'number' ? data.count : 0;
+        this.dailyUsed.set(count);
       });
     });
 
@@ -166,11 +209,22 @@ export class ContributePaperComponent {
       return;
     }
 
+    // Client-side guard: no requests if quota already 0
+    const remaining = this.remainingQuota();
+    if (remaining <= 0) {
+      this.responseType.set('quota');
+      this.responseMessage.set(
+        `You have reached your daily limit of ${this.dailyLimit()} parses. It resets tomorrow.`
+      );
+      this.showResponseDialog.set(true);
+      return;
+    }
+
     this.parsing.set(true);
     this.error.set(null);
 
     try {
-      const parsed: ParsedPaper = await this.parser.parseExamPdf(file);
+      const parsed: ParsedPaper = await this.parser.parseExamPdf(file, user.uid);
 
       this.courseCode.set(parsed.course_code ?? '');
       this.courseName.set(parsed.course_name ?? '');
@@ -195,11 +249,29 @@ export class ContributePaperComponent {
       this.showEditDialog.set(true);
     } catch (e: any) {
       console.error('Error parsing paper', e);
-      this.error.set('Failed to parse the exam paper. Please try again.');
+      const backendError = e?.error;
+
+      if (backendError?.error === 'QUOTA_EXCEEDED' || e?.status === 429) {
+        const limit =
+          backendError?.dailyLimit ?? this.dailyLimit();
+        this.responseType.set('quota');
+        this.responseMessage.set(
+          `You have reached your daily limit of ${limit} parses. It resets tomorrow.`
+        );
+      } else {
+        this.responseType.set('error');
+        this.responseMessage.set(
+          'Failed to parse the exam paper. Please try again.'
+        );
+      }
+
+      this.showResponseDialog.set(true);
+      this.error.set('Failed to parse the exam paper.');
     } finally {
       this.parsing.set(false);
     }
   }
+
 
   // card click behaviour
   onPaperCardClick(paper: PaperDoc) {
@@ -375,4 +447,9 @@ export class ContributePaperComponent {
       this.saving.set(false);
     }
   }
+
+  closeResponseDialog() {
+  this.showResponseDialog.set(false);
+  this.responseMessage.set(null);
+}
 }

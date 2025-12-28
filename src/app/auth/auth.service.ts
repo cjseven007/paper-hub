@@ -24,6 +24,7 @@ export interface UserProfile {
   email?: string | null;
   photoURL?: string | null;
   completed?:boolean;
+  userDailyLimit?: number; // NEW
 }
 
 @Injectable({ providedIn: 'root' })
@@ -52,6 +53,7 @@ export class AuthService {
             email: data.email ?? user.email ?? null,
             photoURL: data.photoURL ?? user.photoURL ?? null,
             completed: data.completed ?? false,
+            userDailyLimit: data.userDailyLimit ?? 5, // default 5 if missing
           };
 
           return profile;
@@ -88,6 +90,7 @@ export class AuthService {
         email: user.email,
         photoURL: user.photoURL,
         completed: false,
+        userDailyLimit: 5,
         });
     } else {
         // existing user -> don't change completed
@@ -112,6 +115,14 @@ export class AuthService {
     if (!currentUser) throw new Error('Not authenticated');
 
     const ref = doc(this.firestore, 'users', currentUser.uid);
+    const snap = await getDoc(ref);
+    const existing = snap.data() as any | undefined;
+
+    const userDailyLimit =
+    existing && typeof existing.userDailyLimit === 'number'
+      ? existing.userDailyLimit
+      : 5;
+
     await setDoc(
       ref,
       {
@@ -120,6 +131,7 @@ export class AuthService {
         photoURL: currentUser.photoURL,
         ...data,
         completed: true,
+        userDailyLimit,
       },
       { merge: true }
     );

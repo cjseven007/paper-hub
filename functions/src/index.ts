@@ -2,6 +2,15 @@ import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { GoogleGenAI } from "@google/genai";
 
+import * as admin from "firebase-admin";
+
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
+
+const db = admin.firestore();
+
+
 
 const ExamSchema = {
   type: "object",
@@ -141,51 +150,116 @@ export const parseExamPaper = onRequest({
   timeoutSeconds: 300 // Exam papers can take a minute to process
 }, async (req, res) => {
   
-  const { fileBase64 } = req.body;
-  if (!fileBase64) {
-    res.status(400).send("No PDF data provided.");
-    return;
-  }
+  const { fileBase64, uid } = req.body as {
+      fileBase64?: string;
+      uid?: string;
+    };
 
-  let cleanBase64 = fileBase64;
-  if (cleanBase64.includes(",")) {
-        cleanBase64 = cleanBase64.split(",")[1];
+    if (!fileBase64) {
+      res.status(400).send("No PDF data provided.");
+      return;
     }
 
-  // Initialize the Client inside the request to use the Secret
-  const client = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
-  const result = await client.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents: [{
-        role: "user",
-        parts: [
-        { text: PARSE_PROMPT },
-        { inlineData: { data: cleanBase64, mimeType: "application/pdf" } }
-        ]
-    }],
-    config: {
-        responseMimeType: "application/json",
-        responseSchema: ExamSchema
+    if (!uid) {
+      res
+        .status(400)
+        .json({ error: "MISSING_UID", message: "User ID (uid) is required." });
+      return;
     }
-    });
 
-    // SAFE ACCESS:
-    const candidate = result.candidates?.[0];
-    const responseText = candidate?.content?.parts?.[0]?.text;
-
-    if (!responseText) {
-    // Check why it failed (usually safety filters)
-    const finishReason = candidate?.finishReason || "UNKNOWN";
-    logger.error(`AI failed to generate content. Reason: ${finishReason}`);
-    res.status(500).json({ error: `Generation failed: ${finishReason}` });
-    return;
-    }
+    // --- DAILY QUOTA CHECK ---
+    const todayStr = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    const userRef = db.collection("users").doc(uid);
+    const usageRef = db.collection("userUsage").doc(`${uid}_${todayStr}`);
 
     try {
-    res.json(JSON.parse(responseText));
-    } catch (e) {
-    logger.error("JSON Parse Error", responseText);
-    res.status(500).json({ error: "Invalid JSON returned from AI" });
+      const [userSnap, usageSnap] = await Promise.all([
+        userRef.get(),
+        usageRef.get(),
+      ]);
+
+      const userData = userSnap.data() || {};
+      const dailyLimit =
+        typeof userData.userDailyLimit === "number"
+          ? userData.userDailyLimit
+          : 5;
+
+      const usageData = usageSnap.data() || {};
+      const usedCount =
+        typeof usageData.count === "number" ? usageData.count : 0;
+
+      if (usedCount >= dailyLimit) {
+        res.status(429).json({
+          error: "QUOTA_EXCEEDED",
+          message: "You have reached your daily parsing limit.",
+          dailyLimit,
+          usedCount,
+          remaining: 0,
+        });
+        return;
+      }
+
+      // --- CLEAN BASE64 ---
+      let cleanBase64 = fileBase64;
+      if (cleanBase64.includes(",")) {
+        cleanBase64 = cleanBase64.split(",")[1];
+      }
+
+      // Initialize Gemini client
+      const client = new GoogleGenAI({
+        apiKey: process.env.GEMINI_API_KEY,
+      });
+
+      const result = await client.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { text: PARSE_PROMPT },
+              { inlineData: { data: cleanBase64, mimeType: "application/pdf" } },
+            ],
+          },
+        ],
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: ExamSchema,
+        },
+      });
+
+      // SAFE ACCESS:
+      const candidate = result.candidates?.[0];
+      const responseText = candidate?.content?.parts?.[0]?.text;
+
+      if (!responseText) {
+        const finishReason = candidate?.finishReason || "UNKNOWN";
+        logger.error(`AI failed to generate content. Reason: ${finishReason}`);
+        res.status(500).json({ error: `Generation failed: ${finishReason}` });
+        return;
+      }
+
+      try {
+        const json = JSON.parse(responseText);
+
+        // --- INCREMENT USAGE AFTER SUCCESS ---
+        await usageRef.set(
+          {
+            uid,
+            date: todayStr,
+            count: admin.firestore.FieldValue.increment(1),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          },
+          { merge: true }
+        );
+
+        res.json(json);
+      } catch (e) {
+        logger.error("JSON Parse Error", responseText);
+        res.status(500).json({ error: "Invalid JSON returned from AI" });
+      }
+    } catch (err) {
+      logger.error("Error checking daily quota", err);
+      res.status(500).json({ error: "Failed to check daily quota" });
     }
-});
+  }
+);
